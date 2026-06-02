@@ -6,7 +6,9 @@ import { getUserFromRequest } from '@app/libs/get-user-from-requests'
 
 // 1. Sign up
 const signUp = catchAsync(async (req, res) => {
-  const result = await AuthServices.signUp(req.body)
+
+  const profileImage = req.file
+  const result = await AuthServices.signUp(req.body, profileImage)
 
   sendResponse(res, {
     success: true,

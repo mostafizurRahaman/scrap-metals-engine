@@ -27,7 +27,6 @@ const resendSignupOtpSchema = z.object({
     email: true,
   }),
 })
-
 const verifySignupOtpSchema = z.object({
   body: signUserSchema.shape.body
     .pick({
@@ -75,6 +74,14 @@ const changedPasswordSchema = z.object({
   }),
 })
 
+const updateProfileData = z.object({
+  body: z.object({
+    name: optionalString('Name'),
+    phoneNumber: optionalString('Phone number'),
+    address: optionalString('Address'),
+  }),
+})
+
 export const AuthValidations = {
   signUserSchema,
   loginSchema,
@@ -85,6 +92,7 @@ export const AuthValidations = {
   resendOTPSchema,
   changedPasswordSchema,
   resetPasswordSchema,
+  updateProfileData,
 }
 
 export type ISignUpSchemaType = z.infer<typeof signUserSchema.shape.body>
@@ -96,3 +104,4 @@ export type IVerifyResetPasswordOtpType = z.infer<typeof verifyResetPasswordOtpS
 export type IResetPasswordOtpType = z.infer<typeof resetPasswordSchema.shape.body>
 export type IResetPasswordOtpQueryType = z.infer<typeof resetPasswordSchema.shape.query>
 export type IChangedPasswordType = z.infer<typeof changedPasswordSchema.shape.body>
+export type IUpdateProfilePayloadType = z.infer<typeof updateProfileData.shape.body>

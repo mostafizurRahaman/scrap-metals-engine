@@ -26,9 +26,10 @@ import configs from '@app/configs'
 import mongoose, { Types } from 'mongoose'
 import { renderEmail, ResetPasswordOTPEmail, SignupOTPEmail } from '@repo/email-templates'
 import { sendEmail } from '@repo/email-sender'
+import { uploadSingleFileToS3 } from 'packages/media-hub/src'
 
 // 1. Signup
-const signUp = async (payload: ISignUpSchemaType) => {
+const signUp = async (payload: ISignUpSchemaType, file: Express.Multer.File) => {
   const { name, email, password } = payload
 
   // 1. Check existing user
@@ -73,19 +74,25 @@ const signUp = async (payload: ISignUpSchemaType) => {
     // 2. Hash password
     const hashedPassword = await hashPassword(password, configs.passwordSoltRound)
 
+    // 3. Upload images:
+    const newUserPayload: Record<string, unknown> = {
+      name,
+      email,
+      password: hashedPassword,
+      status: AuthStatus.PENDING,
+      role: AuthRoles.CUSTOMER,
+    }
+
+    // 4. Upload Profile image:
+    if (file) {
+      const { url } = await uploadSingleFileToS3(file, 'profileImages')
+      if (url) {
+        newUserPayload.profileImage = url
+      }
+    }
+
     // 3. Create user (PENDING)
-    const [newUser] = await User.create(
-      [
-        {
-          name,
-          email,
-          password: hashedPassword,
-          status: AuthStatus.PENDING,
-          role: AuthRoles.CUSTOMER,
-        },
-      ],
-      { session }
-    )
+    const [newUser] = await User.create([newUserPayload], { session })
 
     if (!newUser?._id) {
       throw new AppError(httpStatus.BAD_REQUEST, 'User creation failed!')
@@ -690,6 +697,8 @@ const getMe = async (user: IUser) => {
 
   return me[0]
 }
+
+// 12. Update Profile data:
 
 export const AuthServices = {
   signUp,
