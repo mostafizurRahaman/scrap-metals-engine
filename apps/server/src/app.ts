@@ -9,7 +9,11 @@ import { notFound } from './app/middlewares/not-found'
 import globalErrorHandler from './app/middlewares/global-error-handler'
 import { allRoutes } from '@app/routes'
 import { logger } from '@app/libs/logger'
+
 const app: express.Application = express()
+
+
+
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 munite

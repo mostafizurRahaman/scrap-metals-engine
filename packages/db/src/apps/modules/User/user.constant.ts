@@ -2,7 +2,7 @@
 export const AuthStatus = {
   ACTIVE: 'active', // can use the system
   PENDING: 'pending', // signup completed, waiting for next step
-  IN_REVIEW: 'in_review', // admin/manual verification in progress
+  IN_REVIEW: 'in_review', // admin/manual ve
   BLOCKED: 'blocked', // admin restricted
   DELETED: 'deleted', // soft-deleted (no login)
 } as const
@@ -15,7 +15,8 @@ export type TAuthStatus = (typeof AuthStatus)[keyof typeof AuthStatus]
 export const AuthRoles = {
   SUPER_ADMIN: 'superadmin',
   ADMIN: 'admin',
-  USER: 'user',
+  CUSTOMER: 'customer',
+  STAFF: 'staff',
 }
 
 export const AuthRolesValues = Object.values(AuthRoles)

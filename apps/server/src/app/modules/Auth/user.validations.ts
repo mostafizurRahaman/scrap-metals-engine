@@ -1,4 +1,4 @@
-import { requiredEmail, requiredString } from '@repo/shared'
+import { optionalString, requiredEmail, requiredString } from '@repo/shared'
 import z from 'zod/v4'
 
 // 1. Signup
@@ -9,6 +9,8 @@ const signUserSchema = z.object({
     password: requiredString('Password').min(1, {
       error: `Password is required`,
     }),
+    phoneNumber: requiredString('Phone number'),
+    address: optionalString('Address'),
   }),
 })
 
@@ -84,8 +86,6 @@ export const AuthValidations = {
   changedPasswordSchema,
   resetPasswordSchema,
 }
-
-
 
 export type ISignUpSchemaType = z.infer<typeof signUserSchema.shape.body>
 export type ILoginType = z.infer<typeof loginSchema.shape.body>

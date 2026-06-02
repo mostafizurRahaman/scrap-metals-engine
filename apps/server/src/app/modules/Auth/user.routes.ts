@@ -58,9 +58,15 @@ router.post(
 // 9. Changed password:
 router.post(
   '/changed-password',
-  auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN, AuthRoles.USER),
+  auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN, AuthRoles.CUSTOMER, AuthRoles.STAFF),
   validateRequest(AuthValidations.changedPasswordSchema),
   AuthController.changedPassword
 )
 
+// 10.Get me:
+router.get(
+  '/me',
+  auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN, AuthRoles.CUSTOMER, AuthRoles.STAFF),
+  AuthController.getMe
+)
 export const authRoutes = router

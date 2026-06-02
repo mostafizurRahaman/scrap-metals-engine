@@ -28,7 +28,7 @@ const userSchema = new Schema<IUser, IUserModel>(
     role: {
       type: String,
       enum: AuthRoles,
-      default: AuthRoles.USER,
+      default: AuthRoles.CUSTOMER,
     },
 
     //  profile image:
@@ -53,6 +53,16 @@ const userSchema = new Schema<IUser, IUserModel>(
     isOtpVerified: {
       type: Boolean,
       default: false,
+    },
+
+    // address:
+    address: {
+      type: String,
+    },
+
+    // Phone number:
+    phoneNumber: {
+      type: String,
     },
 
     // reason fields:
@@ -107,12 +117,10 @@ userSchema.statics.isUserDeleted = async function (user: IUser) {
 userSchema.statics.isUserBlocked = async function (user: IUser) {
   return user.status === AuthStatus.BLOCKED
 }
-
 // 6. check is user under_review by id:
 userSchema.statics.isUserUnderReview = async function (user: IUser) {
   return user.status === AuthStatus.IN_REVIEW
 }
-
 // 7. check is user in Pending  by id:
 userSchema.statics.isUserStatusPending = async function (user: IUser) {
   return user.status === AuthStatus.PENDING

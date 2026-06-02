@@ -23,7 +23,7 @@ import {
 // import { sendEmail } from '@repo/email-sender'
 import httpStatus from 'http-status'
 import configs from '@app/configs'
-import mongoose from 'mongoose'
+import mongoose, { Types } from 'mongoose'
 import { renderEmail, ResetPasswordOTPEmail, SignupOTPEmail } from '@repo/email-templates'
 import { sendEmail } from '@repo/email-sender'
 
@@ -81,7 +81,7 @@ const signUp = async (payload: ISignUpSchemaType) => {
           email,
           password: hashedPassword,
           status: AuthStatus.PENDING,
-          role: AuthRoles.USER,
+          role: AuthRoles.CUSTOMER,
         },
       ],
       { session }
@@ -625,7 +625,7 @@ const resetPassword = async (resetToken: string, payload: IResetPasswordOtpType)
 }
 
 // 9. Changed password:
-const changedPassword = async (userInfo: IJwtUserPayload, payload: IChangedPasswordType) => {
+const changedPassword = async (userInfo: IUser, payload: IChangedPasswordType) => {
   const { newPassword, oldPassword } = payload
 
   // 1. Check is user exists with this id?:
@@ -658,6 +658,38 @@ const changedPassword = async (userInfo: IJwtUserPayload, payload: IChangedPassw
   )
 }
 
+// 10. Get me:
+const getMe = async (user: IUser) => {
+  // check is the user exists?:
+
+  const me = await User.aggregate([
+    {
+      $match: {
+        _id: new Types.ObjectId(user._id),
+      },
+    },
+
+    {
+      $project: {
+        _id: 1,
+        name: 1,
+        email: 1,
+        phoneNumber: 1,
+        status: 1,
+        role: 1,
+        address: 1,
+        isTwoFactorEnabled: 1,
+        profileImage: 1,
+        isOtpVerified: 1,
+        passwordChangedAt: 1,
+        createdAt: 1,
+        updatedAt: 1,
+      },
+    },
+  ])
+
+  return me[0]
+}
 
 export const AuthServices = {
   signUp,
@@ -669,4 +701,5 @@ export const AuthServices = {
   resendOTP,
   resetPassword,
   changedPassword,
+  getMe,
 }

@@ -23,6 +23,10 @@ export interface IUser extends Document {
   blockedReason?: string
   deletionReason?: string
 
+  // address:
+  address?: string
+  phoneNumber?: string
+
   // common timestamps:
   blockedAt?: Date
   deletedAt?: Date
