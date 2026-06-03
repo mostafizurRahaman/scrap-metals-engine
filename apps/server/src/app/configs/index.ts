@@ -44,6 +44,7 @@ const envSchema = z.object({
   // Admin & OTP
   SUPER_ADMIN_PASSWORD: z.string(),
   SUPER_ADMIN_EMAIL: z.string().email(),
+  SUPER_ADMIN_PHONENUMBER: z.string(),
   OTP_EXPIRES_IN: z.string().transform(Number).default(5),
   OTP_DIGITS: z.string().transform(Number).default(6),
 })
@@ -107,6 +108,7 @@ const configs = {
   superAdmin: {
     password: env.SUPER_ADMIN_PASSWORD,
     email: env.SUPER_ADMIN_EMAIL,
+    phoneNumber: env.SUPER_ADMIN_PHONENUMBER,
   },
 
   otpSettings: {
