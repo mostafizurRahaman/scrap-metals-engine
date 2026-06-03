@@ -79,10 +79,34 @@ router.get(
   AuthController.getMe
 )
 
+// 11. Update Profile
 router.patch(
   '/update-profile',
   auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN, AuthRoles.CUSTOMER, AuthRoles.STAFF),
+  multerFactory({
+    category: 'image',
+    maxSizeInMB: 5,
+  }).single('profileImage'),
+
   validateRequest(AuthValidations.updateProfileData),
   AuthController.updateProfile
+)
+
+// 12. Update Status
+router.patch(
+  '/update-status/:id',
+  auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN),
+  AuthController.updateStatusByID
+)
+
+// 13. Change Picture
+router.patch(
+  '/change-picture',
+  multerFactory({
+    category: 'image',
+    maxSizeInMB: 5,
+  }).single('profileImage'),
+  auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN, AuthRoles.CUSTOMER, AuthRoles.STAFF),
+  AuthController.ChangeProfilePicture
 )
 export const authRoutes = router

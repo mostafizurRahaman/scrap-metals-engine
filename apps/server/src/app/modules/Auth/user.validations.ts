@@ -1,4 +1,5 @@
 import { optionalString, requiredEmail, requiredString } from '@repo/shared'
+import { AuthStatus } from '@repo/db'
 import z from 'zod/v4'
 
 // 1. Signup
@@ -82,6 +83,17 @@ const updateProfileData = z.object({
   }),
 })
 
+const updateUserStatusById = z.object({
+  params: z.object({
+    id: requiredString('User Id is required!'),
+  }),
+  body: z.object({
+    status: z.enum([AuthStatus.ACTIVE, AuthStatus.BLOCKED], {
+      error: `Auth status should be ${AuthStatus.ACTIVE} or ${AuthStatus.BLOCKED} `,
+    }),
+  }),
+})
+
 export const AuthValidations = {
   signUserSchema,
   loginSchema,
@@ -93,6 +105,7 @@ export const AuthValidations = {
   changedPasswordSchema,
   resetPasswordSchema,
   updateProfileData,
+  updateUserStatusById,
 }
 
 export type ISignUpSchemaType = z.infer<typeof signUserSchema.shape.body>
@@ -105,3 +118,4 @@ export type IResetPasswordOtpType = z.infer<typeof resetPasswordSchema.shape.bod
 export type IResetPasswordOtpQueryType = z.infer<typeof resetPasswordSchema.shape.query>
 export type IChangedPasswordType = z.infer<typeof changedPasswordSchema.shape.body>
 export type IUpdateProfilePayloadType = z.infer<typeof updateProfileData.shape.body>
+export type IUpdateUserStatusPayload = z.infer<typeof updateUserStatusById.shape.body>

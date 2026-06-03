@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AuthRoles, AuthStatus, Otp, otpTypes, User, type IUser } from '@repo/db'
+import { AuthRoles, AuthStatus, Otp, otpTypes, User, type IUser, type TAuthStatus } from '@repo/db'
 import type {
   IChangedPasswordType,
   IForgotPasswordType,
@@ -27,7 +27,7 @@ import configs from '@app/configs'
 import mongoose, { Types } from 'mongoose'
 import { renderEmail, ResetPasswordOTPEmail, SignupOTPEmail } from '@repo/email-templates'
 import { sendEmail } from '@repo/email-sender'
-import { deleteSingleFileFromS3, uploadSingleFileToS3 } from 'packages/media-hub/src'
+import { deleteSingleFileFromS3, uploadSingleFileToS3 } from '@repo/media-hub'
 
 // 1. Signup
 const signUp = async (payload: ISignUpSchemaType, file: Express.Multer.File) => {
@@ -722,6 +722,96 @@ const updateProfile = async (
 
   return {
     _id: user?._id,
+    name: user.name,
+    email: user.email,
+    phoneNumber: user.phoneNumber,
+    address: user.address,
+    updatedAt: user.updatedAt,
+  }
+}
+
+// 13: Update User Status:
+const updateUserStatusById = async (actorUser: IUser, userId: string, status: string) => {
+  if (!actorUser) {
+    throw new AppError(httpStatus.NOT_FOUND, "You don't have an account!")
+  }
+
+  // 1. Check is user is exists ?
+  const user = await User.findOne({
+    _id: userId,
+  })
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User doesn't exists")
+  }
+
+  // 2. Check is user otp verified ?:
+  if (!user?.isOtpVerified) {
+    throw new AppError(httpStatus.BAD_REQUEST, `User doesn't verify OTP yet.`)
+  }
+
+  // 3. Check user id and current user is same ?:
+  if (user?._id?.toString() === actorUser?._id?.toString()) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'You cannot change your status.')
+  }
+
+  // 4. Rank validation for chaning status:
+  const ROLE_RANK = {
+    superadmin: 4,
+    admin: 3,
+    customer: 2,
+    staff: 2,
+  } as const
+
+  const actorRole = actorUser.role as 'superadmin' | 'admin' | 'customer' | 'staff'
+  const userRole = user.role as 'superadmin' | 'admin' | 'customer' | 'staff'
+
+  const canChangeStatus = ROLE_RANK[actorRole] > ROLE_RANK[userRole]
+
+  if (!canChangeStatus) {
+    throw new AppError(httpStatus.BAD_REQUEST, "You don't have enough permission to change status.")
+  }
+
+  // 5. Check status already changed:
+  if (user.status === status) {
+    throw new AppError(httpStatus.BAD_REQUEST, `User status already changed to ${user.status}`)
+  }
+
+  user.status = status as TAuthStatus
+
+  user.save()
+
+  return {
+    _id: user?._id,
+    status: user?.status,
+    createdAt: user?.createdAt,
+    updatedAt: user?.updatedAt,
+  }
+}
+
+// 14. Change profile picture:
+const ChangeProfilePicture = async (user: IUser, file: Express.Multer.File) => {
+  if (!file) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'File is required!')
+  }
+
+  if (user.profileImage) {
+    await deleteSingleFileFromS3(user.profileImage)
+  }
+
+  const { url } = await uploadSingleFileToS3(file, 'profileImage')
+  user.profileImage = url
+
+  user.save()
+
+  return {
+    _id: user?._id,
+    name: user.name,
+    email: user.email,
+    phoneNumber: user.phoneNumber,
+    profileImage: user.profileImage,
+    address: user.address,
+    updatedAt: user.updatedAt,
   }
 }
 
@@ -737,4 +827,6 @@ export const AuthServices = {
   changedPassword,
   getMe,
   updateProfile,
+  updateUserStatusById,
+  ChangeProfilePicture,
 }

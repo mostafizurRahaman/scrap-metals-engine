@@ -6,7 +6,7 @@ import { getUserFromRequest } from '@app/libs/get-user-from-requests'
 
 // 1. Sign up
 const signUp = catchAsync(async (req, res) => {
-  const profileImage = req.file
+  const profileImage = req.file as Express.Multer.File
   const result = await AuthServices.signUp(req.body, profileImage)
 
   sendResponse(res, {
@@ -155,6 +155,34 @@ const updateProfile = catchAsync(async (req, res) => {
     data: result,
   })
 })
+
+const updateStatusByID = catchAsync(async (req, res) => {
+  const user = await getUserFromRequest(req)
+  const status = req.body.status
+  const userId = req.params.id as string
+
+  const result = await AuthServices.updateUserStatusById(user, userId, status)
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'User status updated successfully!',
+    data: result,
+  })
+})
+
+const ChangeProfilePicture = catchAsync(async (req, res) => {
+  const user = await getUserFromRequest(req)
+
+  const result = await AuthServices.ChangeProfilePicture(user, req.file as Express.Multer.File)
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'User profile picture changed successfully!',
+    data: result,
+  })
+})
 export const AuthController = {
   signUp,
   resendSignupOTP,
@@ -167,4 +195,6 @@ export const AuthController = {
   changedPassword,
   getMe,
   updateProfile,
+  updateStatusByID,
+  ChangeProfilePicture,
 }
