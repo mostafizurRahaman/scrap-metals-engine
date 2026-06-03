@@ -7,6 +7,7 @@ import type {
   IResendSignupType,
   IResetPasswordOtpType,
   ISignUpSchemaType,
+  IUpdateProfilePayloadType,
   IVerifyResetPasswordOtpType,
   IVerifySignupOtpType,
 } from './user.validations'
@@ -26,7 +27,7 @@ import configs from '@app/configs'
 import mongoose, { Types } from 'mongoose'
 import { renderEmail, ResetPasswordOTPEmail, SignupOTPEmail } from '@repo/email-templates'
 import { sendEmail } from '@repo/email-sender'
-import { uploadSingleFileToS3 } from 'packages/media-hub/src'
+import { deleteSingleFileFromS3, uploadSingleFileToS3 } from 'packages/media-hub/src'
 
 // 1. Signup
 const signUp = async (payload: ISignUpSchemaType, file: Express.Multer.File) => {
@@ -699,6 +700,30 @@ const getMe = async (user: IUser) => {
 }
 
 // 12. Update Profile data:
+const updateProfile = async (
+  user: IUser,
+  body: IUpdateProfilePayloadType,
+  file: Express.Multer.File
+) => {
+  if (user.profileImage && file) {
+    await deleteSingleFileFromS3(user.profileImage)
+  }
+
+  if (file) {
+    const { url } = await uploadSingleFileToS3(file, 'profileImage')
+    user.profileImage = url
+  }
+
+  if (body.name !== undefined) user.name = body.name
+  if (body.address !== undefined) user.address = body.address
+  if (body.phoneNumber !== undefined) user.phoneNumber = body.phoneNumber
+
+  user.save()
+
+  return {
+    _id: user?._id,
+  }
+}
 
 export const AuthServices = {
   signUp,
@@ -711,4 +736,5 @@ export const AuthServices = {
   resetPassword,
   changedPassword,
   getMe,
+  updateProfile,
 }

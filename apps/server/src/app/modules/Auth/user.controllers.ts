@@ -6,7 +6,6 @@ import { getUserFromRequest } from '@app/libs/get-user-from-requests'
 
 // 1. Sign up
 const signUp = catchAsync(async (req, res) => {
-
   const profileImage = req.file
   const result = await AuthServices.signUp(req.body, profileImage)
 
@@ -141,6 +140,21 @@ const getMe = catchAsync(async (req, res) => {
   })
 })
 
+// 11. Update Profile:
+const updateProfile = catchAsync(async (req, res) => {
+  const user = await getUserFromRequest(req)
+  const profileImage = req.file as Express.Multer.File
+  const body = req.body
+
+  const result = await AuthServices.updateProfile(user, body, profileImage)
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: `Your profile updated successfully!`,
+    data: result,
+  })
+})
 export const AuthController = {
   signUp,
   resendSignupOTP,
@@ -152,4 +166,5 @@ export const AuthController = {
   resetPassword,
   changedPassword,
   getMe,
+  updateProfile,
 }
