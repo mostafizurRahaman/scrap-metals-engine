@@ -1,72 +1,203 @@
-import { Metal, metalSearchableFields  } from "@repo/db"
-import httpStatus from "http-status"
-import { AppError } from "@repo/shared"
-import type { PipelineStage } from "mongoose"
+import { Metal, metalSearchableFields, type IUser } from '@repo/db'
+import httpStatus from 'http-status'
+import { AppError, formatQuery, type BaseQueryParams } from '@repo/shared'
+import type { PipelineStage } from 'mongoose'
 
 import type {
   TCreateMetalPayloadType,
   TUpdateMetalPayloadType,
-  TGetAllMetalQueryParamsType
-} from "./metal.validations"
+  TGetAllMetalQueryParamsType,
+} from './metal.validations'
+import { slugify } from './metal.utils'
 
-const createMetal = async (payload: TCreateMetalPayloadType) => {
-  const result = await Metal.create(payload)
+const createMetal = async (user: IUser, payload: TCreateMetalPayloadType) => {
+  const { name, pricePerKg, pricePerUnit } = payload
+
+  // 1. Slugify the url:
+  const slug = slugify(name)
+
+  // 2. Check with this slug already any metal exists ?:
+  const existingMetal = await Metal.findOne({
+    slug,
+  })
+  if (existingMetal) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `A Metal already exists with this name ${name} & slug ${slug}`
+    )
+  }
+
+  // Prepare payload:
+  const newMetal = {
+    name,
+    slug,
+    createdBy: user?._id,
+    pricePerKg,
+    pricePerUnit,
+  }
+
+  const result = await Metal.create(newMetal)
   return result
 }
 
 const updateMetal = async (id: string, payload: TUpdateMetalPayloadType) => {
-  const result = await Metal.findOneAndUpdate(
-    { _id: id },
-    { $set: payload },
-    { new: true }
-  )
+  const existingMetal = await Metal.findById(id)
 
-  if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, "Metal not found")
+  if (!existingMetal) {
+    throw new AppError(httpStatus.NOT_FOUND, "Metal doesn't exist.")
   }
 
-  return result
+  // If name is being updated
+  if (payload.name) {
+    const slug = slugify(payload.name)
+
+    // Check whether another metal already uses this slug
+    const duplicateMetal = await Metal.findOne({
+      slug,
+      _id: { $ne: id },
+    })
+
+    if (duplicateMetal) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `A Metal already exists with this name ${payload.name} & slug ${slug}`
+      )
+    }
+
+    existingMetal.name = payload.name
+    existingMetal.slug = slug
+  }
+
+  if (payload.pricePerKg !== undefined && payload.pricePerKg !== existingMetal.pricePerKg) {
+    existingMetal.previousPricePerKg = existingMetal.pricePerKg
+    existingMetal.pricePerKg = payload.pricePerKg
+  }
+
+  if (payload.pricePerUnit !== undefined && payload.pricePerUnit !== existingMetal.pricePerUnit) {
+    existingMetal.previousPricePerUnit = existingMetal.pricePerUnit
+    existingMetal.pricePerUnit = payload.pricePerUnit
+  }
+
+  await existingMetal.save()
+
+  return existingMetal
 }
 
 const getAllMetal = async (query: TGetAllMetalQueryParamsType) => {
-  const {
-    page = 1,
-    limit = 10,
-    searchTerm,
-    sortOrder = 'desc',
-    sortBy = 'createdAt',
-    fromDate,
-    toDate
-  } = query
+  const { page, limit, skip, searchTerm, dateFilter, fromDate, toDate, sortBy, sortOrder } =
+    formatQuery(query as BaseQueryParams)
 
-  const skip = (page - 1) * limit
   const pipeline: PipelineStage[] = []
 
   if (fromDate || toDate) {
-    const dateFilter : Record<string,unknown> = {}
-    if (fromDate) dateFilter.$gte = new Date(fromDate)
-    if (toDate) dateFilter.$lte = new Date(toDate)
-
     pipeline.push({ $match: { createdAt: dateFilter } })
   }
 
   if (searchTerm) {
     pipeline.push({
       $match: {
-        $or: metalSearchableFields.map(field => ({
-          [field]: { $regex: searchTerm, $options: 'i' }
-        }))
-      }
+        $or: metalSearchableFields.map((field) => ({
+          [field]: { $regex: searchTerm, $options: 'i' },
+        })),
+      },
     })
   }
 
   pipeline.push({ $sort: { [sortBy]: sortOrder === 'asc' ? 1 : -1 } })
 
   pipeline.push({
+    $addFields: {
+      priceTrendingForKg: {
+        $cond: [
+          { $gt: ['$previousPricePerKg', 0] },
+          {
+            $round: [
+              {
+                $multiply: [
+                  {
+                    $divide: [
+                      {
+                        $subtract: ['$pricePerKg', '$previousPricePerKg'],
+                      },
+                      '$previousPricePerKg',
+                    ],
+                  },
+                  100,
+                ],
+              },
+              2,
+            ],
+          },
+          0,
+        ],
+      },
+      priceTrendingForUnit: {
+        $cond: [
+          { $gt: ['$previousPricePerUnit', 0] },
+          {
+            $round: [
+              {
+                $multiply: [
+                  {
+                    $divide: [
+                      {
+                        $subtract: ['$pricePerUnit', '$previousPricePerUnit'],
+                      },
+                      '$previousPricePerUnit',
+                    ],
+                  },
+                  100,
+                ],
+              },
+              2,
+            ],
+          },
+          0,
+        ],
+      },
+    },
+  })
+
+  pipeline.push({
+    $addFields: {
+      priceTrendingForKgDirection: {
+        $switch: {
+          branches: [
+            {
+              case: { $gt: ['$pricePerKg', '$previousPricePerKg'] },
+              then: 'up',
+            },
+            {
+              case: { $lt: ['$pricePerKg', '$previousPricePerKg'] },
+              then: 'down',
+            },
+          ],
+          default: 'unchanged',
+        },
+      },
+      priceTrendingForUnitDirection: {
+        $switch: {
+          branches: [
+            {
+              case: { $gt: ['$pricePerUnit', '$previousPricePerUnit'] },
+              then: 'up',
+            },
+            {
+              case: { $lt: ['$pricePerUnit', '$previousPricePerUnit'] },
+              then: 'down',
+            },
+          ],
+          default: 'unchanged',
+        },
+      },
+    },
+  })
+
+  pipeline.push({
     $facet: {
       data: [{ $skip: skip }, { $limit: limit }],
-      meta: [{ $count: 'total' }]
-    }
+      meta: [{ $count: 'total' }],
+    },
   })
 
   const aggregated = await Metal.aggregate(pipeline)
@@ -80,8 +211,8 @@ const getAllMetal = async (query: TGetAllMetalQueryParamsType) => {
       page,
       limit,
       total,
-      totalPages: Math.ceil(total / limit) || 1
-    }
+      totalPages: Math.ceil(total / limit) || 1,
+    },
   }
 }
 
@@ -89,7 +220,7 @@ const getMetalById = async (id: string) => {
   const result = await Metal.findById(id)
 
   if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, "Metal not found")
+    throw new AppError(httpStatus.NOT_FOUND, 'Metal not found')
   }
 
   return result
@@ -99,7 +230,7 @@ const deleteMetalById = async (id: string) => {
   const result = await Metal.findOneAndDelete({ _id: id })
 
   if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, "Metal not found")
+    throw new AppError(httpStatus.NOT_FOUND, 'Metal not found')
   }
 
   return result
@@ -110,5 +241,5 @@ export const metalServices = {
   updateMetal,
   getAllMetal,
   getMetalById,
-  deleteMetalById
+  deleteMetalById,
 }

@@ -1,9 +1,12 @@
 import { catchAsync, sendResponse } from '@repo/shared'
 import httpStatus from 'http-status'
 import { metalServices } from './metal.services'
+import { getUserFromRequest } from '@app/libs/get-user-from-requests'
 
 const createMetal = catchAsync(async (req, res) => {
-  const result = await metalServices.createMetal(req.body)
+  const user = await getUserFromRequest(req)
+
+  const result = await metalServices.createMetal(user, req.body)
 
   sendResponse(res, {
     success: true,
@@ -63,5 +66,5 @@ export const metalControllers = {
   updateMetal,
   getAllMetal,
   getMetalById,
-  deleteMetalById
+  deleteMetalById,
 }
