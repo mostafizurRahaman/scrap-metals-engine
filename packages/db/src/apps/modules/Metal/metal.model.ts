@@ -18,7 +18,7 @@ const metalSchema = new Schema<IMetalDoc>(
       required: true,
       ref: 'User',
     },
-    pricePerKg: {
+    pricePerLbs: {
       type: Number,
       required: true,
       default: 0,
@@ -30,7 +30,7 @@ const metalSchema = new Schema<IMetalDoc>(
       default: 0,
       min: 0,
     },
-    previousPricePerKg: {
+    previousPricePerLbs: {
       type: Number,
       required: true,
       default: 0,

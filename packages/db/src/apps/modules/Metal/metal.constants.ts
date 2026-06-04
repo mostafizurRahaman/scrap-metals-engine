@@ -4,9 +4,9 @@ export const metalSortableFields = [
   'name',
   'slug',
   'previousPricePerUnit',
-  'previousPricePerKg',
+  'previousPricePerLbs',
   'pricePerUnit',
-  'pricePerKg',
+  'pricePerLbs',
   'createdAt',
   'updatedAt',
 ] as const

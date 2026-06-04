@@ -6,7 +6,6 @@ import {
   optionalString,
   optionalDate,
   sortingOrderValues,
-  sortOrder,
   positiveNumber,
   optionalPositive,
 } from '@repo/shared'
@@ -17,10 +16,10 @@ const createMetalSchema = z.object({
     name: requiredString('Name').min(3, {
       error: 'Minimum length should be 3 character',
     }),
-    pricePerKg: positiveNumber('Price Per KG').min(1, {
+    pricePerLbs: positiveNumber('Price Per Lbs').min(0, {
       error: 'Min price per kg should be greater 0',
     }),
-    pricePerUnit: positiveNumber('Price Per Unit').min(1, {
+    pricePerUnit: positiveNumber('Price Per Unit').min(0, {
       error: 'Min price per UNIT should be greater 0',
     }),
   }),
@@ -34,7 +33,7 @@ const updateMetalSchema = z.object({
   body: z
     .object({
       name: optionalString('Name'),
-      pricePerKg: optionalPositive('Price Per Kg'),
+      pricePerLbs: optionalPositive('Price Per Lbs'),
       pricePerUnit: optionalPositive('Price Per Unit'),
     })
     .superRefine((data, ctx) => {
@@ -46,18 +45,18 @@ const updateMetalSchema = z.object({
         })
       }
 
-      if (data?.pricePerKg && data.pricePerKg < 1) {
+      if (data?.pricePerLbs && data.pricePerLbs <= 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ['pricePerKg'],
+          path: ['pricePerLbs'],
           message: 'Min price per kg should be greater 0',
         })
       }
 
-      if (data?.pricePerUnit && data.pricePerUnit < 1) {
+      if (data?.pricePerUnit && data.pricePerUnit <= 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          path: ['pricePerKg'],
+          path: ['pricePerUnit'],
           message: 'Min price per UNIT should be greater 0',
         })
       }

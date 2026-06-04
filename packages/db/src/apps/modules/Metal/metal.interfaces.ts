@@ -4,9 +4,9 @@ export interface IMetal {
   name: string
   slug: string
   createdBy: Types.ObjectId
-  pricePerKg: number
+  pricePerLbs: number
   pricePerUnit: number
-  previousPricePerKg: number
+  previousPricePerLbs: number
   previousPricePerUnit: number
 }
 
