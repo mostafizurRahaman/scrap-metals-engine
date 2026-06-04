@@ -1,10 +1,99 @@
-import { Schema, model } from 'mongoose'
-  import type { IOrderDoc } from './order.interfaces'
+import { Schema, Types, model } from 'mongoose'
+import type { IOrderDoc } from './order.interfaces'
+import {
+  DeliveryMethod,
+  deliveryMethodValues,
+  GetPickupPoints,
+  GetPickupPointsType,
+  OrderStatus,
+  orderStatusValues,
+  orderTypeValues,
+} from './order.constants'
 
 const orderSchema = new Schema<IOrderDoc>(
   {
-    name: {
+    orderNumber: {
       type: String,
+      required: true,
+      index: true,
+      unique: true,
+    },
+    customer: {
+      type: Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    employee: {
+      type: Types.ObjectId,
+      ref: 'User',
+    },
+    orderType: {
+      type: String,
+      enum: orderTypeValues,
+      required: true,
+    },
+    deliveryType: {
+      type: String,
+      enum: deliveryMethodValues,
+      default: DeliveryMethod.DROPOFF,
+    },
+    status: {
+      type: String,
+      enum: orderStatusValues,
+      default: OrderStatus.PENDING,
+    },
+
+    // Date fields:
+    orderRequestedAt: {
+      type: Date,
+      required: true,
+      default: Date.now(),
+    },
+    preferredDate: {
+      type: Date,
+      required: true,
+    },
+
+    // Price related fields:
+    subTotal: {
+      type: Number,
+      required: true,
+    },
+    qoutedPrice: {
+      type: Number,
+    },
+    pickupPrice: {
+      type: Number,
+    },
+    totalPrice: {
+      type: Number,
+    },
+
+    // Optional Fields:
+    pickupAddress: {
+      type: String,
+    },
+
+    pickupPoint: {
+      type: {
+        type: String,
+        enum: GetPickupPointsType,
+        default: GetPickupPoints.Point,
+        required: true,
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        required: true,
+      },
+    },
+
+    // Notes:
+    additionalNotes: {
+      type: String,
+    },
+    attachments: {
+      type: [String],
+      default: [],
     },
   },
   {
@@ -13,12 +102,4 @@ const orderSchema = new Schema<IOrderDoc>(
   }
 )
 
-// Static method
-// orderSchema.statics.getById = async function (id: string) {
-//   return this.findById(id)
-// }
-
-export const Order = model<IOrderDoc>(
-  'Order',
-  orderSchema
-)
+export const Order = model<IOrderDoc>('Order', orderSchema)

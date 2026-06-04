@@ -25,6 +25,7 @@ export default tseslint.config(
       'no-unused-vars': 'error',
       'prefer-const': 'error',
       '@typescript-eslint/no-explicit-any': 'error',
+      
     },
   }
 )
