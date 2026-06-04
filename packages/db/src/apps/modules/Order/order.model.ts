@@ -97,6 +97,7 @@ const orderSchema = new Schema<IOrderDoc>(
     },
   },
   {
+    discriminatorKey: 'orderType',
     timestamps: true,
     versionKey: false,
   }
