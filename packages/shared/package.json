@@ -22,7 +22,7 @@
     "http-status": "^2.1.0",
     "jsonwebtoken": "^9.0.3",
     "moment": "^2.30.1",
-    "mongoose": "^9.1.2",
+    "mongoose": "^9.1.6",
     "zod": "^4.3.5"
   },
   "devDependencies": {

@@ -17,7 +17,7 @@
   "packageManager": "pnpm@10.27.0",
   "dependencies": {
     "@repo/email-templates": "workspace:*",
-    "nodemailer": "^7.0.12"
+    "nodemailer": "^8.0.5"
   },
   "devDependencies": {
     "@eslint/json": "^0.14.0",
