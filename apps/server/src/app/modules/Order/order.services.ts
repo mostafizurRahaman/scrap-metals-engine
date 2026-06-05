@@ -1,28 +1,33 @@
-import { Order, orderSearchableFields  } from "@repo/db"
-import httpStatus from "http-status"
-import { AppError } from "@repo/shared"
-import type { PipelineStage } from "mongoose"
+import { Order, orderSearchableFields, type IUser } from '@repo/db'
+import httpStatus from 'http-status'
+import { AppError } from '@repo/shared'
+import type { PipelineStage } from 'mongoose'
 
 import type {
-  TCreateOrderPayloadType,
+  TCreateVihecleOrderPayloadType,
   TUpdateOrderPayloadType,
-  TGetAllOrderQueryParamsType
-} from "./order.validations"
+  TGetAllOrderQueryParamsType,
+} from './order.validations'
 
-const createOrder = async (payload: TCreateOrderPayloadType) => {
-  const result = await Order.create(payload)
-  return result
+const createOrder = async (user: IUser, payload: TCreateVihecleOrderPayloadType) => {
+  const {
+    vinNumber,
+    orderType,
+    deliveryType,
+    preferredDate,
+    subTotal,
+    additionalNotes,
+    lattitude,
+    longitude,
+    pickupAddress,
+  } = payload
 }
 
 const updateOrder = async (id: string, payload: TUpdateOrderPayloadType) => {
-  const result = await Order.findOneAndUpdate(
-    { _id: id },
-    { $set: payload },
-    { new: true }
-  )
+  const result = await Order.findOneAndUpdate({ _id: id }, { $set: payload }, { new: true })
 
   if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, "Order not found")
+    throw new AppError(httpStatus.NOT_FOUND, 'Order not found')
   }
 
   return result
@@ -36,14 +41,14 @@ const getAllOrder = async (query: TGetAllOrderQueryParamsType) => {
     sortOrder = 'desc',
     sortBy = 'createdAt',
     fromDate,
-    toDate
+    toDate,
   } = query
 
   const skip = (page - 1) * limit
   const pipeline: PipelineStage[] = []
 
   if (fromDate || toDate) {
-    const dateFilter : Record<string,unknown> = {}
+    const dateFilter: Record<string, unknown> = {}
     if (fromDate) dateFilter.$gte = new Date(fromDate)
     if (toDate) dateFilter.$lte = new Date(toDate)
 
@@ -53,10 +58,10 @@ const getAllOrder = async (query: TGetAllOrderQueryParamsType) => {
   if (searchTerm) {
     pipeline.push({
       $match: {
-        $or: orderSearchableFields.map(field => ({
-          [field]: { $regex: searchTerm, $options: 'i' }
-        }))
-      }
+        $or: orderSearchableFields.map((field) => ({
+          [field]: { $regex: searchTerm, $options: 'i' },
+        })),
+      },
     })
   }
 
@@ -65,8 +70,8 @@ const getAllOrder = async (query: TGetAllOrderQueryParamsType) => {
   pipeline.push({
     $facet: {
       data: [{ $skip: skip }, { $limit: limit }],
-      meta: [{ $count: 'total' }]
-    }
+      meta: [{ $count: 'total' }],
+    },
   })
 
   const aggregated = await Order.aggregate(pipeline)
@@ -80,8 +85,8 @@ const getAllOrder = async (query: TGetAllOrderQueryParamsType) => {
       page,
       limit,
       total,
-      totalPages: Math.ceil(total / limit) || 1
-    }
+      totalPages: Math.ceil(total / limit) || 1,
+    },
   }
 }
 
@@ -89,7 +94,7 @@ const getOrderById = async (id: string) => {
   const result = await Order.findById(id)
 
   if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, "Order not found")
+    throw new AppError(httpStatus.NOT_FOUND, 'Order not found')
   }
 
   return result
@@ -99,7 +104,7 @@ const deleteOrderById = async (id: string) => {
   const result = await Order.findOneAndDelete({ _id: id })
 
   if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, "Order not found")
+    throw new AppError(httpStatus.NOT_FOUND, 'Order not found')
   }
 
   return result
@@ -110,5 +115,5 @@ export const orderServices = {
   updateOrder,
   getAllOrder,
   getOrderById,
-  deleteOrderById
+  deleteOrderById,
 }

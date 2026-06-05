@@ -1,9 +1,11 @@
 import { catchAsync, sendResponse } from '@repo/shared'
 import httpStatus from 'http-status'
 import { orderServices } from './order.services'
+import { getUserFromRequest } from '@app/libs/get-user-from-requests'
 
 const createOrder = catchAsync(async (req, res) => {
-  const result = await orderServices.createOrder(req.body)
+  const user = await getUserFromRequest(req)
+  const result = await orderServices.createOrder(user, req.body)
 
   sendResponse(res, {
     success: true,
@@ -63,5 +65,5 @@ export const orderControllers = {
   updateOrder,
   getAllOrder,
   getOrderById,
-  deleteOrderById
+  deleteOrderById,
 }

@@ -11,7 +11,7 @@ import type {
 import { slugify } from './metal.utils'
 
 const createMetal = async (user: IUser, payload: TCreateMetalPayloadType) => {
-  const { name, pricePerLbs, pricePerUnit } = payload
+  const { name, price, unit } = payload
 
   // 1. Slugify the url:
   const slug = slugify(name)
@@ -32,8 +32,8 @@ const createMetal = async (user: IUser, payload: TCreateMetalPayloadType) => {
     name,
     slug,
     createdBy: user?._id,
-    pricePerLbs,
-    pricePerUnit,
+    price,
+    unit,
   }
 
   const result = await Metal.create(newMetal)
@@ -68,14 +68,11 @@ const updateMetal = async (id: string, payload: TUpdateMetalPayloadType) => {
     existingMetal.slug = slug
   }
 
-  if (payload.pricePerLbs !== undefined && payload.pricePerLbs !== existingMetal.pricePerLbs) {
-    existingMetal.previousPricePerLbs = existingMetal.pricePerLbs
-    existingMetal.pricePerLbs = payload.pricePerLbs
-  }
+  if (payload.unit !== undefined) existingMetal.unit = payload.unit
 
-  if (payload.pricePerUnit !== undefined && payload.pricePerUnit !== existingMetal.pricePerUnit) {
-    existingMetal.previousPricePerUnit = existingMetal.pricePerUnit
-    existingMetal.pricePerUnit = payload.pricePerUnit
+  if (payload.price !== undefined && payload.price !== existingMetal.price) {
+    existingMetal.previousPrice = existingMetal.price
+    existingMetal.price = payload.price
   }
 
   await existingMetal.save()
@@ -107,9 +104,9 @@ const getAllMetal = async (query: TGetAllMetalQueryParamsType) => {
 
   pipeline.push({
     $addFields: {
-      priceTrendingForLbs: {
+      priceTrending: {
         $cond: [
-          { $gt: ['$previousPricePerLbs', 0] },
+          { $gt: ['$previousPrice', 0] },
           {
             $round: [
               {
@@ -117,33 +114,9 @@ const getAllMetal = async (query: TGetAllMetalQueryParamsType) => {
                   {
                     $divide: [
                       {
-                        $subtract: ['$pricePerLbs', '$previousPricePerLbs'],
+                        $subtract: ['$price', '$previousPrice'],
                       },
-                      '$previousPricePerLbs',
-                    ],
-                  },
-                  100,
-                ],
-              },
-              2,
-            ],
-          },
-          0,
-        ],
-      },
-      priceTrendingForUnit: {
-        $cond: [
-          { $gt: ['$previousPricePerUnit', 0] },
-          {
-            $round: [
-              {
-                $multiply: [
-                  {
-                    $divide: [
-                      {
-                        $subtract: ['$pricePerUnit', '$previousPricePerUnit'],
-                      },
-                      '$previousPricePerUnit',
+                      '$previousPrice',
                     ],
                   },
                   100,
@@ -160,30 +133,15 @@ const getAllMetal = async (query: TGetAllMetalQueryParamsType) => {
 
   pipeline.push({
     $addFields: {
-      priceTrendingForKgDirection: {
+      priceTrendingDirection: {
         $switch: {
           branches: [
             {
-              case: { $gt: ['$pricePerLbs', '$previousPricePerLbs'] },
+              case: { $gt: ['$price', '$previousPrice'] },
               then: 'up',
             },
             {
-              case: { $lt: ['$pricePerLbs', '$previousPricePerLbs'] },
-              then: 'down',
-            },
-          ],
-          default: 'unchanged',
-        },
-      },
-      priceTrendingForUnitDirection: {
-        $switch: {
-          branches: [
-            {
-              case: { $gt: ['$pricePerUnit', '$previousPricePerUnit'] },
-              then: 'up',
-            },
-            {
-              case: { $lt: ['$pricePerUnit', '$previousPricePerUnit'] },
+              case: { $lt: ['$price', '$previousPrice'] },
               then: 'down',
             },
           ],

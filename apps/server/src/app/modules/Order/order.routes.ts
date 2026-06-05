@@ -3,11 +3,11 @@ import { validateRequest } from '@app/middlewares'
 import { orderControllers } from './order.controllers'
 import { orderValidations } from './order.validations'
 
-const router : Router = express.Router()
+const router: Router = express.Router()
 
 router.post(
-  '/',
-  validateRequest(orderValidations.createOrderSchema),
+  '/vehicle',
+  validateRequest(orderValidations.createVihecleOrderSchema),
   orderControllers.createOrder
 )
 
