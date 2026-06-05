@@ -1,4 +1,3 @@
-import { Document } from 'mongoose'
 import type { IOrder } from '../Order'
 
 export interface IVehicleSpecs {
