@@ -2,13 +2,18 @@ import express, { Router } from 'express'
 import { validateRequest } from '@app/middlewares'
 import { orderControllers } from './order.controllers'
 import { orderValidations } from './order.validations'
+import { multerFactory } from 'packages/media-hub/src'
 
 const router: Router = express.Router()
 
 router.post(
   '/vehicle',
+  multerFactory({
+    category: 'image',
+    maxSizeInMB: 5,
+  }).single('attachments'),
   validateRequest(orderValidations.createVihecleOrderSchema),
-  orderControllers.createOrder
+  orderControllers.createVehicleOrder
 )
 
 router.patch(

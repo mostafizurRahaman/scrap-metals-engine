@@ -3,9 +3,11 @@ import httpStatus from 'http-status'
 import { orderServices } from './order.services'
 import { getUserFromRequest } from '@app/libs/get-user-from-requests'
 
-const createOrder = catchAsync(async (req, res) => {
+// ? Vehicle order created successfully.
+const createVehicleOrder = catchAsync(async (req, res) => {
+  const files = req.files as Express.Multer.File[]
   const user = await getUserFromRequest(req)
-  const result = await orderServices.createOrder(user, req.body)
+  const result = await orderServices.createVehicleOrder(user, req.body, files)
 
   sendResponse(res, {
     success: true,
@@ -61,7 +63,7 @@ const deleteOrderById = catchAsync(async (req, res) => {
 })
 
 export const orderControllers = {
-  createOrder,
+  createVehicleOrder,
   updateOrder,
   getAllOrder,
   getOrderById,

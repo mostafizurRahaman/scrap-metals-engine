@@ -9,7 +9,6 @@ import {
   sortingOrderValues,
   enumString,
   requiredDate,
-  positiveNumber,
 } from '@repo/shared'
 import {
   DeliveryMethod,
@@ -35,7 +34,6 @@ const createVihecleOrderSchema = z
       orderType: enumString(orderTypeValues, 'Order type').default(OrderType.VEHICLE),
       deliveryType: enumString(deliveryMethodValues, 'Delivery type'),
       preferredDate: requiredDate('Preferred Date'),
-      subTotal: positiveNumber('Sub total'),
       pickupAddress: optionalString('Pickup address'),
       lattitude: optionalNumber('Lattitude'),
       longitude: optionalNumber('Longitude'),
@@ -96,6 +94,10 @@ const createVihecleOrderSchema = z
         })
         return
       }
+    } else {
+      data.body.pickupAddress = undefined
+      data.body.lattitude = undefined
+      data.body.longitude = undefined
     }
   })
 
