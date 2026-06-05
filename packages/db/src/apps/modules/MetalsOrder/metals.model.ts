@@ -4,7 +4,7 @@ import { Order } from '../Order'
 
 const metalItemSchema = new Schema<IMetalItem>(
   {
-    metalId: {
+    metal: {
       type: Types.ObjectId,
       ref: 'Metal',
       required: true,

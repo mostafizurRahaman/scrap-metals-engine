@@ -2,7 +2,7 @@ import type { Types } from 'mongoose'
 import type { IOrder } from '../Order'
 
 export interface IMetalItem {
-  metalId: Types.ObjectId
+  metal: Types.ObjectId
   quantity: number
 }
 

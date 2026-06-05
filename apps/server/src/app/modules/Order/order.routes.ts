@@ -19,6 +19,17 @@ router.post(
   orderControllers.createVehicleOrder
 )
 
+router.post(
+  '/metal',
+  multerFactory({
+    category: 'image',
+    maxSizeInMB: 5,
+  }).single('attachments'),
+  auth(AuthRoles.CUSTOMER),
+  validateRequest(orderValidations.createMetalOrder),
+  orderControllers.createMetalOrder
+)
+
 router.patch(
   '/:id',
   validateRequest(orderValidations.updateOrderSchema),

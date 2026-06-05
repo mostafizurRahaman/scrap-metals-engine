@@ -9,14 +9,11 @@ import {
   sortingOrderValues,
   enumString,
   requiredDate,
+  requiredMongooseId,
+  positiveNumber,
+  requiredNumber,
 } from '@repo/shared'
-import {
-  DeliveryMethod,
-  deliveryMethodValues,
-  orderSortableFields,
-  OrderType,
-  orderTypeValues,
-} from '@repo/db'
+import { DeliveryMethod, deliveryMethodValues, orderSortableFields } from '@repo/db'
 
 const createVihecleOrderSchema = z
   .object({
@@ -100,6 +97,27 @@ const createVihecleOrderSchema = z
     }
   })
 
+const metalItemSchema = z.object({
+  metal: requiredMongooseId('Metal ID'),
+  quantity: positiveNumber('Quantity').gte(0, {
+    error: 'Quantity should be greater than 0.',
+  }),
+})
+
+const createMetalOrder = z.object({
+  body: z.object({
+    items: z
+      .array(metalItemSchema, {
+        error: 'Metal item is required',
+      })
+      .min(1, {
+        error: 'Minimum one metal item required!',
+      }),
+    preferredDate: requiredDate('Preferred Date'),
+    additionalNotes: optionalString('Additional notes'),
+  }),
+})
+
 const updateOrderSchema = z.object({
   params: z.object({
     id: requiredString('ID'),
@@ -133,6 +151,7 @@ const deleteOrderByIdSchema = z.object({
 
 export const orderValidations = {
   createVihecleOrderSchema,
+  createMetalOrder,
   updateOrderSchema,
   getAllOrderSchema,
   getOrderByIdSchema,
@@ -140,6 +159,8 @@ export const orderValidations = {
 }
 
 export type TCreateVihecleOrderPayloadType = z.infer<typeof createVihecleOrderSchema.shape.body>
+
+export type TCreateMetalOrderPayloadType = z.infer<typeof createMetalOrder.shape.body>
 
 export type TUpdateOrderPayloadType = z.infer<typeof updateOrderSchema.shape.body>
 export type TGetAllOrderQueryParamsType = z.infer<typeof getAllOrderSchema.shape.query>

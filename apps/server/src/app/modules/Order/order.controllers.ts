@@ -12,7 +12,20 @@ const createVehicleOrder = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: 'The order created successfully!',
+    message: 'The vehicle order placed successfully!',
+    data: result,
+  })
+})
+
+const createMetalOrder = catchAsync(async (req, res) => {
+  const files = req.files as Express.Multer.File[]
+  const user = await getUserFromRequest(req)
+  const result = await orderServices.createMetalOrder(user, req.body, files)
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.CREATED,
+    message: 'The metal order placed successfully!',
     data: result,
   })
 })
@@ -64,6 +77,7 @@ const deleteOrderById = catchAsync(async (req, res) => {
 
 export const orderControllers = {
   createVehicleOrder,
+  createMetalOrder,
   updateOrder,
   getAllOrder,
   getOrderById,
