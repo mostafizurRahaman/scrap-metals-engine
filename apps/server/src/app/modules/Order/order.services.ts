@@ -2,15 +2,11 @@ import {
   AuthRoles,
   DeliveryMethod,
   GetPickupPoints,
-  GetPickupPointsType,
   Order,
   orderSearchableFields,
   OrderStatus,
-  OrderType,
   Vehicle,
   type IUser,
-  type IVehicleOrder,
-  type TPickupPointType,
 } from '@repo/db'
 import httpStatus from 'http-status'
 import { AppError } from '@repo/shared'

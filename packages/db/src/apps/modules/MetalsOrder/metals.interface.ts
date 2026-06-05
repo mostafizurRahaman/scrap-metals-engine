@@ -3,8 +3,6 @@ import type { IOrder } from '../Order'
 
 export interface IMetalItem {
   metalId: Types.ObjectId
-  nameAtOrder: string
-  unitType: 'LBS' | 'PCS'
   quantity: number
 }
 

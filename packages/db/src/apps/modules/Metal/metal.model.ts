@@ -1,5 +1,6 @@
 import { Schema, Types, model } from 'mongoose'
 import type { IMetalDoc } from './metal.interfaces'
+import { metalUnitValues } from './metal.constants'
 
 const metalSchema = new Schema<IMetalDoc>(
   {
@@ -18,29 +19,22 @@ const metalSchema = new Schema<IMetalDoc>(
       required: true,
       ref: 'User',
     },
-    pricePerLbs: {
+    price: {
       type: Number,
       required: true,
       default: 0,
       min: 0,
     },
-    pricePerUnit: {
+    previousPrice: {
       type: Number,
       required: true,
       default: 0,
       min: 0,
     },
-    previousPricePerLbs: {
-      type: Number,
+    unit: {
+      type: String,
+      enum: metalUnitValues,
       required: true,
-      default: 0,
-      min: 0,
-    },
-    previousPricePerUnit: {
-      type: Number,
-      required: true,
-      default: 0,
-      min: 0,
     },
   },
   {

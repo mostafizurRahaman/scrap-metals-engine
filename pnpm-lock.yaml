@@ -72,6 +72,9 @@ importers:
       '@typescript-eslint/parser':
         specifier: ^8.53.0
         version: 8.53.0(eslint@9.39.2(jiti@2.6.1))(typescript@6.0.3)
+      check-geographic-coordinates:
+        specifier: ^1.0.5
+        version: 1.0.5
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
@@ -2428,6 +2431,10 @@ packages:
   chalk@5.6.2:
     resolution: {integrity: sha512-7NzBL0rN6fMUW+f7A6Io4h40qQlG+xGmtMxfbnH/K7TAtt8JQWVQK+6g0UXKMeVJoyV5EkkNsErQ8pVD3bLHbA==}
     engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
+
+  check-geographic-coordinates@1.0.5:
+    resolution: {integrity: sha512-29HB6XuwKvyZzIPtK8yqlRWRUh9iUWQr37akFTG8zfDX/PYp6xXAHBXzY0cR0TTlI0zzTZk2n9vrbNaKW37s0A==}
+    engines: {node: '>=14'}
 
   chokidar@1.7.0:
     resolution: {integrity: sha512-mk8fAWcRUOxY7btlLtitj3A45jOwSAxH4tOFOoEGbVsl6cL6pPMWUy7dwZ/canfj3QEdP6FHSnf/l1c6/WkzVg==}
@@ -7687,6 +7694,8 @@ snapshots:
       supports-color: 7.2.0
 
   chalk@5.6.2: {}
+
+  check-geographic-coordinates@1.0.5: {}
 
   chokidar@1.7.0:
     dependencies:

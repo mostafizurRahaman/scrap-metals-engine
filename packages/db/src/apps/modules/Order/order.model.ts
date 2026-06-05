@@ -10,6 +10,22 @@ import {
   orderTypeValues,
 } from './order.constants'
 
+const pickupPointSchema = new Schema(
+  {
+    type: {
+      type: String,
+      enum: Object.values(GetPickupPointsType),
+      default: GetPickupPoints.Point,
+      required: true,
+    },
+    coordinates: {
+      type: [Number],
+      required: true,
+    },
+  },
+  { _id: false }
+)
+
 const orderSchema = new Schema<IOrderDoc>(
   {
     orderNumber: {
@@ -75,16 +91,8 @@ const orderSchema = new Schema<IOrderDoc>(
     },
 
     pickupPoint: {
-      type: {
-        type: String,
-        enum: GetPickupPointsType,
-        default: GetPickupPoints.Point,
-        required: true,
-      },
-      coordinates: {
-        type: [Number], // [longitude, latitude]
-        required: true,
-      },
+      type: pickupPointSchema,
+      required: true,
     },
 
     // Notes:
