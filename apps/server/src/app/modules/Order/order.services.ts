@@ -5,6 +5,7 @@ import {
   Order,
   orderSearchableFields,
   OrderStatus,
+  OrderType,
   Vehicle,
   type IUser,
 } from '@repo/db'
@@ -27,7 +28,6 @@ const createVehicleOrder = async (
 ) => {
   const {
     vinNumber,
-    orderType,
     deliveryType,
     preferredDate,
     additionalNotes,
@@ -88,8 +88,8 @@ const createVehicleOrder = async (
 
   const newOrderPayload: Record<string, unknown> = {
     orderNumber,
+    vinNumber,
     customer: user?._id,
-    orderType,
     deliveryType,
     status: OrderStatus.PENDING,
 
@@ -107,11 +107,12 @@ const createVehicleOrder = async (
   // ? If the Delivery type is pickup:
   if (deliveryType === DeliveryMethod.PICKUP) {
     newOrderPayload.pickupAddress = pickupAddress
-    newOrderPayload.pickupPoints = {
+    newOrderPayload.pickupPoint = {
       type: GetPickupPoints.Point,
       coordinates: [longitude, lattitude],
     }
   }
+  console.log(newOrderPayload)
 
   // ? Create the order:
   const order = Vehicle.create(newOrderPayload)

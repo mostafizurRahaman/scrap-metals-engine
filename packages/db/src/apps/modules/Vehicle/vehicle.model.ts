@@ -1,6 +1,19 @@
 import { Schema } from 'mongoose'
-import type { IVehicleOrder } from './vehicle.interface'
+import type { IVehicleOrder, IVehicleSpecs } from './vehicle.interface'
 import { Order } from '../Order'
+
+const VehicleSepcificationSchema = new Schema<IVehicleSpecs>(
+  {
+    weightLbs: { type: Number, default: 0 },
+    aluminumWeightLbs: { type: Number, default: 0 },
+    wheelWeightLbs: { type: Number, default: 0 },
+    batteryWeightLbs: { type: Number, default: 0 },
+    breakageWeightLbs: { type: Number, default: 0 },
+  },
+  {
+    _id: false,
+  }
+)
 
 const VehicleOrderSchema = new Schema<IVehicleOrder>(
   {
@@ -11,18 +24,14 @@ const VehicleOrderSchema = new Schema<IVehicleOrder>(
     },
     model: {
       type: String,
-      required: true,
+      required: false,
     },
     year: {
       type: String,
-      required: true,
+      required: false,
     },
     spcs: {
-      weightLbs: { type: Number, default: 0 },
-      aluminumWeightLbs: { type: Number, default: 0 },
-      wheelWeightLbs: { type: Number, default: 0 },
-      batteryWeightLbs: { type: Number, default: 0 },
-      breakageWeightLbs: { type: Number, default: 0 },
+      type: VehicleSepcificationSchema,
     },
   },
   {

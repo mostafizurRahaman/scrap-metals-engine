@@ -3,6 +3,8 @@ import { validateRequest } from '@app/middlewares'
 import { orderControllers } from './order.controllers'
 import { orderValidations } from './order.validations'
 import { multerFactory } from 'packages/media-hub/src'
+import { AuthRoles } from 'packages/db/src'
+import { auth } from '@app/middlewares/auth'
 
 const router: Router = express.Router()
 
@@ -12,6 +14,7 @@ router.post(
     category: 'image',
     maxSizeInMB: 5,
   }).single('attachments'),
+  auth(AuthRoles.CUSTOMER),
   validateRequest(orderValidations.createVihecleOrderSchema),
   orderControllers.createVehicleOrder
 )

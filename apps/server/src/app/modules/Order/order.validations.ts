@@ -31,7 +31,6 @@ const createVihecleOrderSchema = z
         ),
 
       // Order model sepecific field:
-      orderType: enumString(orderTypeValues, 'Order type').default(OrderType.VEHICLE),
       deliveryType: enumString(deliveryMethodValues, 'Delivery type'),
       preferredDate: requiredDate('Preferred Date'),
       pickupAddress: optionalString('Pickup address'),
