@@ -15,5 +15,3 @@ export interface IVehicleOrder extends IOrder {
   year: string
   spcs: IVehicleSpecs
 }
-
-export interface IOrderDoc extends Document, IOrder {}
