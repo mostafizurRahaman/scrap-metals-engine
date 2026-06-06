@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   AuthRoles,
   DeliveryMethod,
@@ -118,11 +119,43 @@ const createVehicleOrder = async (
       coordinates: [longitude, lattitude],
     }
   }
+  const session = await mongoose.startSession()
 
-  // ? Create the order:
-  const order = Vehicle.create(newOrderPayload)
+  try {
+    await session.startTransaction()
+    // ? Create the order:
+    const [order] = await Vehicle.create([newOrderPayload], {
+      session,
+    })
 
-  return order
+    if (!order?._id) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create order!')
+    }
+
+    // ? Order History
+    await OrderHistory.create(
+      [
+        {
+          order: order?._id,
+          status: OrderStatus.PENDING,
+          previousStatus: OrderStatus.PENDING,
+          changedBy: user?._id,
+          title: `Request Pending`,
+          note: `Your request is being reviewed.`,
+        },
+      ],
+      { session }
+    )
+
+    await session.commitTransaction()
+
+    return order
+  } catch (err: any) {
+    await session.abortTransaction()
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, err.message || 'Something went wrong!')
+  } finally {
+    await session.endSession()
+  }
 }
 // ? 2. Create metal
 const createMetalOrder = async (
@@ -242,28 +275,59 @@ const createMetalOrder = async (
     }
   })
 
-  const newOrderPayload: Record<string, unknown> = {
-    orderNumber,
-    customer: user?._id,
-    status: OrderStatus.PENDING,
-    deliveryType: DeliveryMethod.DROPOFF,
-    // Date fields:
-    orderRequestedAt: new Date(),
-    preferredDate: new Date(preferredDate),
+  const session = await mongoose.startSession()
 
-    items: enrichedItems,
+  try {
+    session.startTransaction()
+    const newOrderPayload: Record<string, unknown> = {
+      orderNumber,
+      customer: user?._id,
+      status: OrderStatus.PENDING,
+      deliveryType: DeliveryMethod.DROPOFF,
+      // Date fields:
+      orderRequestedAt: new Date(),
+      preferredDate: new Date(preferredDate),
 
-    // Fields :
-    subTotal,
+      items: enrichedItems,
 
-    additionalNotes,
-    attachments,
+      // Fields :
+      subTotal,
+
+      additionalNotes,
+      attachments,
+    }
+
+    // ? Create the order:
+    const [newOrder] = await MetalOrder.create([newOrderPayload], { session })
+
+    if (!newOrder?._id) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create order!')
+    }
+
+    // ? Order History
+    await OrderHistory.create(
+      [
+        {
+          order: newOrder?._id,
+          status: OrderStatus.PENDING,
+          previousStatus: OrderStatus.PENDING,
+          changedBy: user?._id,
+          title: `Request Pending`,
+          note: `Your request is being reviewed.`,
+        },
+      ],
+      { session }
+    )
+
+    await session.commitTransaction()
+
+    return newOrder
+  } catch (err: any) {
+    await session.abortTransaction()
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, err.message || 'Something went wrong!')
+  } finally {
+    await session.endSession()
   }
-
-  // ? Create the order:
-  const order = MetalOrder.create(newOrderPayload)
-
-  return order
 }
 
 // ? 3. Vehicle qoute:
@@ -361,6 +425,8 @@ const sendVehicleQoute = async (
     )
 
     await session.commitTransaction()
+
+    return updatedOrder
   } catch (err: any) {
     await session.abortTransaction()
     throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, err.message)
