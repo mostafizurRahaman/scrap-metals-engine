@@ -9,6 +9,7 @@ import {
   OrderHistory,
   orderSearchableFields,
   OrderStatus,
+  OrderType,
   Vehicle,
   type IUser,
 } from '@repo/db'
@@ -21,6 +22,7 @@ import type {
   TGetAllOrderQueryParamsType,
   TCreateMetalOrderPayloadType,
   TVehicleQouteRequestPayloadType,
+  TMetalQouteRequestPayloadType,
 } from './order.validations'
 import { generateUniqueOrderNumber } from './order.utils'
 import { uploadMultipleFileToS3 } from 'packages/media-hub/src'
@@ -434,6 +436,106 @@ const sendVehicleQoute = async (
     await session.endSession()
   }
 }
+// ? 3. Metal qoute:
+const sendMetalQoute = async (
+  user: IUser,
+  orderId: string,
+  payload: TMetalQouteRequestPayloadType
+) => {
+  const { isCustom, qoutedPrice } = payload
+
+  // ?. Check is user rank greater than
+  const userRole = user.role as 'superadmin' | 'admin' | 'customer' | 'staff'
+  if (ROLE_RANK[userRole] <= ROLE_RANK.customer) {
+    throw new AppError(httpStatus.BAD_REQUEST, "You don't have persmission to send qoute")
+  }
+
+  // ? Check is order exists :
+  const existigOrder = await MetalOrder.findById(orderId)
+  if (!existigOrder) {
+    throw new AppError(httpStatus.NOT_FOUND, "Order doesn't exist.")
+  }
+  console.log(existigOrder, OrderType.METALS)
+
+  // ? Validate order type:
+  if (existigOrder.orderType !== OrderType.METALS) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Sorry! You may try to send qoute to vehicle order')
+  }
+
+  // ? Check is order status pending?:
+  if (existigOrder?.status !== OrderStatus.PENDING) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Qoute not allowed for "${existigOrder?.status}" order.`
+    )
+  }
+
+  // Prepare session:
+  const session = await mongoose.startSession()
+
+  let totalPrice = existigOrder.subTotal || 0
+  let status = OrderStatus.ACCEPTED
+
+  if (isCustom) {
+    totalPrice = qoutedPrice as number
+    status = OrderStatus.QOUTED
+  }
+
+  try {
+    await session.startTransaction()
+
+    // ? Updated Order
+    const updatedOrder = await MetalOrder.findOneAndUpdate(
+      {
+        _id: existigOrder?._id,
+      },
+      {
+        $set: {
+          subTotal: existigOrder.subTotal,
+          qoutedPrice: isCustom ? qoutedPrice : null,
+          totalPrice,
+          status,
+        },
+      },
+      {
+        new: true,
+        session,
+      }
+    )
+
+    if (!updatedOrder?._id) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Failed to update the order!')
+    }
+
+    // ? Update Order status:
+
+    await OrderHistory.create(
+      [
+        {
+          order: updatedOrder!._id,
+          status,
+          previousStatus: existigOrder?.status,
+          changedBy: user?._id,
+          title: status === OrderStatus.ACCEPTED ? 'Order Accepted' : `Qouted Received`,
+          note:
+            status === OrderStatus.ACCEPTED
+              ? 'You order is accepted.'
+              : `${user.name} has qouted your request for ${qoutedPrice || 0}`,
+        },
+      ],
+      { session }
+    )
+
+    await session.commitTransaction()
+
+    return updatedOrder
+  } catch (err: any) {
+    await session.abortTransaction()
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, err.message)
+  } finally {
+    await session.endSession()
+  }
+}
 
 const getAllOrder = async (query: TGetAllOrderQueryParamsType) => {
   const {
@@ -562,8 +664,11 @@ const deleteOrderById = async (id: string) => {
 export const orderServices = {
   createVehicleOrder,
   createMetalOrder,
-  sendVehicleQoute,
   getAllOrder,
   getOrderById,
   deleteOrderById,
+
+  // Qoute request:
+  sendVehicleQoute,
+  sendMetalQoute,
 }

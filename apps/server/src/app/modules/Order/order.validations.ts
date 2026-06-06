@@ -180,6 +180,44 @@ const vehicleOrderQouteRequest = z.object({
   }),
 })
 
+const metalOrderQouteRequest = z.object({
+  params: z.object({
+    id: requiredMongooseId('ID'),
+  }),
+  body: z
+    .object({
+      qoutedPrice: optionalNumber('Qouted price'),
+      isCustom: z.boolean({
+        error: 'Is custom price is required',
+      }),
+    })
+    .superRefine((data, ctx) => {
+      if (data.isCustom && !data.qoutedPrice) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['qoutedPrice'],
+          message: 'Qouted price is required',
+        })
+      }
+
+      if (data.isCustom === false && data.qoutedPrice !== undefined) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['qoutedPrice'],
+          message: 'Qouted price not needed!',
+        })
+      }
+
+      if (data.isCustom && data?.qoutedPrice && data?.qoutedPrice < 0) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['qoutedPrice'],
+          message: 'Qouted price should be minimum 0',
+        })
+      }
+    }),
+})
+
 const updateOrderSchema = z.object({
   params: z.object({
     id: requiredString('ID'),
@@ -221,6 +259,7 @@ export const orderValidations = {
 
   // Qoute Request:
   vehicleOrderQouteRequest,
+  metalOrderQouteRequest,
 }
 
 export type TCreateVihecleOrderPayloadType = z.infer<typeof createVihecleOrderSchema.shape.body>
@@ -233,3 +272,5 @@ export type TGetOrderByIdParamsType = z.infer<typeof getOrderByIdSchema.shape.pa
 export type TDeleteOrderByIdParamsType = z.infer<typeof deleteOrderByIdSchema.shape.params>
 
 export type TVehicleQouteRequestPayloadType = z.infer<typeof vehicleOrderQouteRequest.shape.body>
+
+export type TMetalQouteRequestPayloadType = z.infer<typeof metalOrderQouteRequest.shape.body>
