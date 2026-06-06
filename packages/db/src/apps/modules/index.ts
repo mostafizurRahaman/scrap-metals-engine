@@ -1,3 +1,7 @@
 export * from './User'
 export * from './Otp'
 export * from './Metal'
+export * from './Vehicle'
+export * from './Order'
+export * from './MetalsOrder'
+export * from './OrderHistory'

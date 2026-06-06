@@ -1,4 +1,3 @@
-import { Document } from 'mongoose'
 import type { IOrder } from '../Order'
 
 export interface IVehicleSpecs {
@@ -15,5 +14,3 @@ export interface IVehicleOrder extends IOrder {
   year: string
   spcs: IVehicleSpecs
 }
-
-export interface IOrderDoc extends Document, IOrder {}

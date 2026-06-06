@@ -1,13 +1,13 @@
 import { Document, Types } from 'mongoose'
+import type { TMetalUnitType } from './metal.constants'
 
 export interface IMetal {
   name: string
   slug: string
   createdBy: Types.ObjectId
-  pricePerLbs: number
-  pricePerUnit: number
-  previousPricePerLbs: number
-  previousPricePerUnit: number
+  price: number
+  previousPrice: number
+  unit: TMetalUnitType
 }
 
 export interface IMetalDoc extends Document, IMetal {}

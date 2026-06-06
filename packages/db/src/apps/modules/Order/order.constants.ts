@@ -3,9 +3,9 @@ export const orderSearchableFields = ['name'] as const
 export const orderSortableFields = ['createdAt', 'updatedAt'] as const
 
 export const OrderType = {
-  VEHICLE: 'VEHICLE',
-  METALS: 'METALS',
-}
+  VEHICLE: 'Vehicle',
+  METALS: 'Metals',
+} as const
 
 export const orderTypeValues = Object.values(OrderType)
 export const OrderStatus = {

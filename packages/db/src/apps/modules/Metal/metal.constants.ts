@@ -1,12 +1,20 @@
 export const metalSearchableFields = ['name', 'slug'] as const
 
+export const MetalUnits = {
+  KG: 'kg',
+  LB: 'lb',
+  PC: 'pc',
+} as const
+
+export const metalUnitValues = Object.values(MetalUnits)
+
 export const metalSortableFields = [
   'name',
   'slug',
   'previousPricePerUnit',
-  'previousPricePerLbs',
+  'previousPrice',
   'pricePerUnit',
-  'pricePerLbs',
+  'price',
   'createdAt',
   'updatedAt',
 ] as const
@@ -15,3 +23,5 @@ export const metalSortableFields = [
 export type TMetalSearchableField = (typeof metalSearchableFields)[number]
 
 export type TMetalSortableField = (typeof metalSortableFields)[number]
+
+export type TMetalUnitType = (typeof metalUnitValues)[number]

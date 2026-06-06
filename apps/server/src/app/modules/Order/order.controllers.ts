@@ -1,25 +1,57 @@
 import { catchAsync, sendResponse } from '@repo/shared'
 import httpStatus from 'http-status'
 import { orderServices } from './order.services'
+import { getUserFromRequest } from '@app/libs/get-user-from-requests'
 
-const createOrder = catchAsync(async (req, res) => {
-  const result = await orderServices.createOrder(req.body)
+// ? Vehicle order created successfully.
+const createVehicleOrder = catchAsync(async (req, res) => {
+  const files = req.files as Express.Multer.File[]
+  const user = await getUserFromRequest(req)
+  const result = await orderServices.createVehicleOrder(user, req.body, files)
 
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
-    message: 'The order created successfully!',
+    message: 'The vehicle order placed successfully!',
     data: result,
   })
 })
 
-const updateOrder = catchAsync(async (req, res) => {
-  const result = await orderServices.updateOrder(req.params.id as string, req.body)
+const createMetalOrder = catchAsync(async (req, res) => {
+  const files = req.files as Express.Multer.File[]
+  const user = await getUserFromRequest(req)
+  const result = await orderServices.createMetalOrder(user, req.body, files)
 
   sendResponse(res, {
     success: true,
-    statusCode: httpStatus.OK,
-    message: 'The order updated successfully!',
+    statusCode: httpStatus.CREATED,
+    message: 'The metal order placed successfully!',
+    data: result,
+  })
+})
+
+const sendVehicleQoute = catchAsync(async (req, res) => {
+  const user = await getUserFromRequest(req)
+  const orderId = req.params.id as string
+  const result = await orderServices.sendVehicleQoute(user, orderId, req.body)
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.CREATED,
+    message: 'Qoute request send successfully!',
+    data: result,
+  })
+})
+
+const sendMetalQoute = catchAsync(async (req, res) => {
+  const user = await getUserFromRequest(req)
+  const orderId = req.params.id as string
+  const result = await orderServices.sendMetalQoute(user, orderId, req.body)
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.CREATED,
+    message: 'Qoute request send successfully!',
     data: result,
   })
 })
@@ -59,9 +91,13 @@ const deleteOrderById = catchAsync(async (req, res) => {
 })
 
 export const orderControllers = {
-  createOrder,
-  updateOrder,
+  createVehicleOrder,
+  createMetalOrder,
   getAllOrder,
   getOrderById,
-  deleteOrderById
+  deleteOrderById,
+
+  // Qoute request:
+  sendVehicleQoute,
+  sendMetalQoute,
 }
