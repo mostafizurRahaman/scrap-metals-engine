@@ -108,17 +108,36 @@ const metalItemSchema = z.object({
 })
 
 const createMetalOrder = z.object({
-  body: z.object({
-    items: z
-      .array(metalItemSchema, {
-        error: 'Metal item is required',
-      })
-      .min(1, {
-        error: 'Minimum one metal item required!',
-      }),
-    preferredDate: requiredDate('Preferred Date'),
-    additionalNotes: optionalString('Additional notes'),
-  }),
+  body: z
+    .object({
+      items: z
+        .array(metalItemSchema, {
+          error: 'Metal item is required',
+        })
+        .min(1, {
+          error: 'Minimum one metal item required!',
+        }),
+      preferredDate: requiredDate('Preferred Date'),
+      additionalNotes: optionalString('Additional notes'),
+    })
+    .superRefine((data, ctx) => {
+      if (data.items && Array.isArray(data.items) && data.items.length > 0) {
+        const uniqueIds: Set<string> = new Set()
+
+        // add all  items into set:
+        data.items.forEach((item) => uniqueIds.add(item.metal))
+
+        // Check set size and items length is equal  or not ?:
+
+        if (uniqueIds.size !== data.items.length) {
+          ctx.addIssue({
+            code: 'custom',
+            path: ['items'],
+            message: 'Duplicate metal items not allowed!',
+          })
+        }
+      }
+    }),
 })
 
 const vehicleOrderQouteRequest = z.object({
@@ -218,6 +237,12 @@ const metalOrderQouteRequest = z.object({
     }),
 })
 
+const acceptQouteRequestSchema = z.object({
+  params: z.object({
+    id: requiredMongooseId('ID'),
+  }),
+})
+
 const updateOrderSchema = z.object({
   params: z.object({
     id: requiredString('ID'),
@@ -260,6 +285,7 @@ export const orderValidations = {
   // Qoute Request:
   vehicleOrderQouteRequest,
   metalOrderQouteRequest,
+  acceptQouteRequestSchema,
 }
 
 export type TCreateVihecleOrderPayloadType = z.infer<typeof createVihecleOrderSchema.shape.body>
@@ -274,3 +300,5 @@ export type TDeleteOrderByIdParamsType = z.infer<typeof deleteOrderByIdSchema.sh
 export type TVehicleQouteRequestPayloadType = z.infer<typeof vehicleOrderQouteRequest.shape.body>
 
 export type TMetalQouteRequestPayloadType = z.infer<typeof metalOrderQouteRequest.shape.body>
+
+export type TAcceptQouteRequestParams = z.infer<typeof acceptQouteRequestSchema.shape.params>

@@ -8,6 +8,7 @@ import { auth } from '@app/middlewares/auth'
 
 const router: Router = express.Router()
 
+// ? 1. Create vehicle order
 router.post(
   '/vehicle',
   multerFactory({
@@ -19,6 +20,7 @@ router.post(
   orderControllers.createVehicleOrder
 )
 
+// ? 2. Create metal order
 router.post(
   '/metal',
   multerFactory({
@@ -30,6 +32,7 @@ router.post(
   orderControllers.createMetalOrder
 )
 
+// ?  3. Send qoute for vehicle order
 router.post(
   '/vehicle/qoute/:id',
   auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN),
@@ -37,11 +40,28 @@ router.post(
   orderControllers.sendVehicleQoute
 )
 
+// ?  4. Send qoute for metal order
 router.post(
   '/metal/qoute/:id',
   auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN),
   validateRequest(orderValidations.metalOrderQouteRequest),
   orderControllers.sendMetalQoute
+)
+
+// ? 5. Accept qoute (customer)
+router.post(
+  '/accept/:id',
+  auth(AuthRoles.CUSTOMER),
+  validateRequest(orderValidations.acceptQouteRequestSchema),
+  orderControllers.acceptQouteRequest
+)
+
+// ? 6. Cancel order:
+router.post(
+  '/cancel/:id',
+  auth(AuthRoles.CUSTOMER),
+  validateRequest(orderValidations.acceptQouteRequestSchema),
+  orderControllers.cancelOrderById
 )
 
 router.get(
