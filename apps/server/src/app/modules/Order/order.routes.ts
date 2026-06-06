@@ -56,6 +56,14 @@ router.post(
   orderControllers.acceptQouteRequest
 )
 
+// ? 6. Cancel order:
+router.post(
+  '/cancel/:id',
+  auth(AuthRoles.CUSTOMER),
+  validateRequest(orderValidations.acceptQouteRequestSchema),
+  orderControllers.cancelOrderById
+)
+
 router.get(
   '/all',
   validateRequest(orderValidations.getAllOrderSchema),

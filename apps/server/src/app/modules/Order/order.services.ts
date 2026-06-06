@@ -617,6 +617,80 @@ const acceptQouteRequest = async (user: IUser, orderId: string) => {
   }
 }
 
+// ? 6. Cancel Order (Customer)
+
+const cancelOrderById = async (user: IUser, orderId: string) => {
+  // ? Check is order exists :
+  const existingOrder = await Order.findById(orderId)
+  if (!existingOrder) {
+    throw new AppError(httpStatus.NOT_FOUND, "Order doesn't exist.")
+  }
+
+  // ? Check is order status pending, qouted?:
+  if (![OrderStatus.PENDING, OrderStatus.QOUTED].includes(existingOrder.status)) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `You cannot cancel "${existingOrder?.status}" status order.`
+    )
+  }
+
+  // ? check is this  order belongs to this customer:
+  if (existingOrder.customer?.toString() !== user?._id?.toString()) {
+    throw new AppError(httpStatus.FORBIDDEN, `You have no permission to cancel this order!`)
+  }
+
+  // Prepare session:
+  const session = await mongoose.startSession()
+
+  try {
+    await session.startTransaction()
+
+    // ? Updated Order
+    const updatedOrder = await Order.findOneAndUpdate(
+      {
+        _id: existingOrder?._id,
+      },
+      {
+        $set: {
+          status: OrderStatus.CANCELLED,
+        },
+      },
+      {
+        new: true,
+        session,
+      }
+    )
+
+    if (!updatedOrder?._id) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Failed to cancelled the order!')
+    }
+
+    // ? Update Order status:
+    await OrderHistory.create(
+      [
+        {
+          order: updatedOrder._id,
+          status: updatedOrder.status,
+          previousStatus: existingOrder?.status,
+          changedBy: user?._id,
+          title: 'Order Cancelled',
+          note: 'Order cancelled by customer.',
+        },
+      ],
+      { session }
+    )
+
+    await session.commitTransaction()
+
+    return updatedOrder
+  } catch (err: any) {
+    await session.abortTransaction()
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, err.message)
+  } finally {
+    await session.endSession()
+  }
+}
+
 const getAllOrder = async (query: TGetAllOrderQueryParamsType) => {
   const {
     page = 1,
@@ -752,4 +826,8 @@ export const orderServices = {
   sendVehicleQoute,
   sendMetalQoute,
   acceptQouteRequest,
+
+  // cancel order:
+  cancelOrderById,
+  
 }

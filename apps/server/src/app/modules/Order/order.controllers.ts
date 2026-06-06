@@ -69,6 +69,19 @@ const acceptQouteRequest = catchAsync(async (req, res) => {
   })
 })
 
+const cancelOrderById = catchAsync(async (req, res) => {
+  const user = await getUserFromRequest(req)
+  const orderId = req.params.id as string
+  const result = await orderServices.cancelOrderById(user, orderId)
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Order cancelled successfully!',
+    data: result,
+  })
+})
+
 const getAllOrder = catchAsync(async (req, res) => {
   const result = await orderServices.getAllOrder(req.query)
 
@@ -114,4 +127,7 @@ export const orderControllers = {
   sendVehicleQoute,
   sendMetalQoute,
   acceptQouteRequest,
+
+  // Cancel order:
+  cancelOrderById,
 }
