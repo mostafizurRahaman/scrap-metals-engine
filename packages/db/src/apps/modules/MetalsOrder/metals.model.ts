@@ -1,6 +1,7 @@
 import { Schema, Types } from 'mongoose'
 import type { IMetalItem, IMetalsOrder } from './metals.interface'
 import { Order } from '../Order'
+import { metalUnitValues } from '../Metal/metal.constants'
 
 const metalItemSchema = new Schema<IMetalItem>(
   {
@@ -9,10 +10,24 @@ const metalItemSchema = new Schema<IMetalItem>(
       ref: 'Metal',
       required: true,
     },
+    name: {
+      type: String,
+      required: true,
+    },
     quantity: {
       type: Number,
       required: true,
       min: 0,
+    },
+    price: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    unit: {
+      type: String,
+      enum: metalUnitValues,
+      required: true,
     },
   },
   {

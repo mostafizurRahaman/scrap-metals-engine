@@ -11,7 +11,6 @@ import {
   requiredDate,
   requiredMongooseId,
   positiveNumber,
-  requiredNumber,
 } from '@repo/shared'
 import { DeliveryMethod, deliveryMethodValues, orderSortableFields } from '@repo/db'
 
@@ -99,6 +98,9 @@ const createVihecleOrderSchema = z
 
 const metalItemSchema = z.object({
   metal: requiredMongooseId('Metal ID'),
+  price: positiveNumber('Price').gte(0, {
+    error: 'Price should be greater than 0',
+  }),
   quantity: positiveNumber('Quantity').gte(0, {
     error: 'Quantity should be greater than 0.',
   }),

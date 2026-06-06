@@ -3,6 +3,7 @@ import {
   DeliveryMethod,
   GetPickupPoints,
   Metal,
+  MetalOrder,
   Order,
   orderSearchableFields,
   OrderStatus,
@@ -11,11 +12,10 @@ import {
 } from '@repo/db'
 import httpStatus from 'http-status'
 import { AppError } from '@repo/shared'
-import type { PipelineStage } from 'mongoose'
+import { Types, type PipelineStage } from 'mongoose'
 
 import type {
   TCreateVihecleOrderPayloadType,
-  TUpdateOrderPayloadType,
   TGetAllOrderQueryParamsType,
   TCreateMetalOrderPayloadType,
 } from './order.validations'
@@ -41,6 +41,8 @@ const createVehicleOrder = async (
   if (user?.role !== AuthRoles.CUSTOMER) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Only customer can place an order.')
   }
+
+  // ALL status will work here.
 
   // ? Generate order number:
   const orderNumber = await generateUniqueOrderNumber()
@@ -79,10 +81,10 @@ const createVehicleOrder = async (
     throw new AppError(httpStatus.BAD_REQUEST, 'You can upload max 5 files.')
   }
 
-  if (files && Array.isArray(files) && files?.length >= 0) {
+  if (files && Array.isArray(files) && files?.length >= 1) {
     const uploadedFiles = await uploadMultipleFileToS3(files, 'attachments')
 
-    uploadedFiles.map((file) => {
+    uploadedFiles.forEach((file) => {
       attachments.push(file.url)
     })
   }
@@ -113,7 +115,6 @@ const createVehicleOrder = async (
       coordinates: [longitude, lattitude],
     }
   }
-  console.log(newOrderPayload)
 
   // ? Create the order:
   const order = Vehicle.create(newOrderPayload)
@@ -127,6 +128,8 @@ const createMetalOrder = async (
   files: Express.Multer.File[]
 ) => {
   const { preferredDate, additionalNotes, items } = payload
+
+  // PENDING, QOUTED, ACCEPT, COMPLETED, CANCELLED
 
   // ?. Check is the user is customer?:
   if (user?.role !== AuthRoles.CUSTOMER) {
@@ -155,17 +158,58 @@ const createMetalOrder = async (
 
   // ? Create map for quantity:
   const quantityMap = new Map()
-  items?.map((item) => quantityMap.set(item.metal?.toString(), item.quantity))
+  const customerPriceMap: Map<string, number> = new Map()
+  items?.forEach((item) => {
+    quantityMap.set(item.metal?.toString(), item.quantity)
+    customerPriceMap.set(item.metal?.toString(), item.price)
+  })
+
+  // ? systemPriceMap:
+  const systemPriceMap: Map<string, number> = new Map()
+  const metalInfoMap: Map<string, { name: string; unit: string }> = new Map()
+  allMetals?.forEach((item) => {
+    const id = item?._id?.toString()
+    systemPriceMap.set(id, item?.price)
+    metalInfoMap.set(id, { name: item.name, unit: item.unit })
+  })
+
+  function compareMaps(map1: Map<string, number>, map2: Map<string, number>) {
+    let testVal
+    if (map1.size !== map2.size) {
+      return false
+    }
+    for (const [key, val] of map1) {
+      testVal = map2.get(key)
+      // in cases of an undefined value, make sure the key
+      // actually exists on the object so there are no false positives
+      if (testVal !== val || (testVal === undefined && !map2.has(key))) {
+        return false
+      }
+    }
+    return true
+  }
+
+  // ?. Compare price consistency:
+  if (!compareMaps(customerPriceMap, systemPriceMap)) {
+    throw new AppError(httpStatus.NOT_FOUND, `Metals prices are not matched!`)
+  }
+
+  //  ?. Now Check all prices are positive :
+  const hasOnlyPostivePrices = [...systemPriceMap.values()].every((price) => price > 0)
+  if (!hasOnlyPostivePrices) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Price should be postive always!')
+  }
 
   // ? Has only Positive quantities ?:
-  const hasOnlyPositiveQuantities = quantityMap.values().every((qty) => qty > 0)
+  const hasOnlyPositiveQuantities = [...quantityMap.values()].every((qty) => qty > 0)
   if (!hasOnlyPositiveQuantities) {
     throw new AppError(httpStatus.BAD_REQUEST, 'All metal quantities should be greater than 0.')
   }
 
   // ? Calcualte subtotal for quantity
   const subTotal = allMetals?.reduce((sum, metal) => {
-    sum = sum + quantityMap.get(metal._id?.toString()) * metal.price
+    const quantity = quantityMap.get(metal._id?.toString()) ?? 0
+    sum = sum + quantity * metal.price
     return sum
   }, 0)
 
@@ -175,13 +219,25 @@ const createMetalOrder = async (
     throw new AppError(httpStatus.BAD_REQUEST, 'You can upload max 5 files.')
   }
 
-  if (files && Array.isArray(files) && files?.length >= 0) {
+  if (files && Array.isArray(files) && files?.length >= 1) {
     const uploadedFiles = await uploadMultipleFileToS3(files, 'attachments')
 
-    uploadedFiles.map((file) => {
+    uploadedFiles.forEach((file) => {
       attachments.push(file.url)
     })
   }
+
+  const enrichedItems = items.map((item) => {
+    const id = item.metal?.toString()
+    const info = metalInfoMap.get(id)
+    return {
+      metal: item.metal,
+      quantity: item.quantity,
+      price: item.price,
+      name: info!.name,
+      unit: info!.unit,
+    }
+  })
 
   const newOrderPayload: Record<string, unknown> = {
     orderNumber,
@@ -192,6 +248,8 @@ const createMetalOrder = async (
     orderRequestedAt: new Date(),
     preferredDate: new Date(preferredDate),
 
+    items: enrichedItems,
+
     // Fields :
     subTotal,
 
@@ -200,19 +258,9 @@ const createMetalOrder = async (
   }
 
   // ? Create the order:
-  const order = Vehicle.create(newOrderPayload)
+  const order = MetalOrder.create(newOrderPayload)
 
   return order
-}
-
-const updateOrder = async (id: string, payload: TUpdateOrderPayloadType) => {
-  const result = await Order.findOneAndUpdate({ _id: id }, { $set: payload }, { new: true })
-
-  if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Order not found')
-  }
-
-  return result
 }
 
 const getAllOrder = async (query: TGetAllOrderQueryParamsType) => {
@@ -273,13 +321,60 @@ const getAllOrder = async (query: TGetAllOrderQueryParamsType) => {
 }
 
 const getOrderById = async (id: string) => {
-  const result = await Order.findById(id)
+  const result = await Order.aggregate([
+    {
+      $match: {
+        _id: new Types.ObjectId(id),
+      },
+    },
+    {
+      $lookup: {
+        localField: 'customer',
+        foreignField: '_id',
+        from: 'users',
+        as: 'customerDetails',
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              email: 1,
+              phoneNumber: 1,
+              address: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind: {
+        path: '$customerDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $addFields: {
+        orderId: '$_id',
+        customerId: '$customerDetails._id',
+        customerName: '$customerDetails.name',
+        customerEmail: '$customerDetails.email',
+        customerPhone: '$customerDetails.phoneNumber',
+        customerAddress: '$customerDetails.address',
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        customerDetails: 0,
+      },
+    },
+  ])
 
-  if (!result) {
+  if (!result[0]) {
     throw new AppError(httpStatus.NOT_FOUND, 'Order not found')
   }
 
-  return result
+  return result[0]
 }
 
 const deleteOrderById = async (id: string) => {
@@ -295,7 +390,6 @@ const deleteOrderById = async (id: string) => {
 export const orderServices = {
   createVehicleOrder,
   createMetalOrder,
-  updateOrder,
   getAllOrder,
   getOrderById,
   deleteOrderById,

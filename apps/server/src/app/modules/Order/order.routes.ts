@@ -13,7 +13,7 @@ router.post(
   multerFactory({
     category: 'image',
     maxSizeInMB: 5,
-  }).single('attachments'),
+  }).array('attachments'),
   auth(AuthRoles.CUSTOMER),
   validateRequest(orderValidations.createVihecleOrderSchema),
   orderControllers.createVehicleOrder
@@ -24,16 +24,10 @@ router.post(
   multerFactory({
     category: 'image',
     maxSizeInMB: 5,
-  }).single('attachments'),
+  }).array('attachments'),
   auth(AuthRoles.CUSTOMER),
   validateRequest(orderValidations.createMetalOrder),
   orderControllers.createMetalOrder
-)
-
-router.patch(
-  '/:id',
-  validateRequest(orderValidations.updateOrderSchema),
-  orderControllers.updateOrder
 )
 
 router.get(

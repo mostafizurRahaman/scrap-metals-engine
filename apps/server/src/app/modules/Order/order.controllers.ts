@@ -30,17 +30,6 @@ const createMetalOrder = catchAsync(async (req, res) => {
   })
 })
 
-const updateOrder = catchAsync(async (req, res) => {
-  const result = await orderServices.updateOrder(req.params.id as string, req.body)
-
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: 'The order updated successfully!',
-    data: result,
-  })
-})
-
 const getAllOrder = catchAsync(async (req, res) => {
   const result = await orderServices.getAllOrder(req.query)
 
@@ -78,7 +67,7 @@ const deleteOrderById = catchAsync(async (req, res) => {
 export const orderControllers = {
   createVehicleOrder,
   createMetalOrder,
-  updateOrder,
+
   getAllOrder,
   getOrderById,
   deleteOrderById,

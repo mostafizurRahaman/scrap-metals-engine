@@ -92,7 +92,6 @@ const orderSchema = new Schema<IOrderDoc>(
 
     pickupPoint: {
       type: pickupPointSchema,
-      required: true,
     },
 
     // Notes:
