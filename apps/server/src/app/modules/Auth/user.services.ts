@@ -18,6 +18,7 @@ import {
   createToken,
   generateOtp,
   hashPassword,
+  ROLE_RANK,
   verifyToken,
   type IJwtUserPayload,
 } from '@repo/shared'
@@ -355,6 +356,7 @@ const login = async (payload: ILoginType) => {
     accessToken,
     email: user.email,
     isTwofactorEnabled: user.isTwoFactorEnabled,
+    role: user?.role,
   }
 }
 
@@ -756,12 +758,6 @@ const updateUserStatusById = async (actorUser: IUser, userId: string, status: st
   }
 
   // 4. Rank validation for chaning status:
-  const ROLE_RANK = {
-    superadmin: 4,
-    admin: 3,
-    customer: 2,
-    staff: 2,
-  } as const
 
   const actorRole = actorUser.role as 'superadmin' | 'admin' | 'customer' | 'staff'
   const userRole = user.role as 'superadmin' | 'admin' | 'customer' | 'staff'

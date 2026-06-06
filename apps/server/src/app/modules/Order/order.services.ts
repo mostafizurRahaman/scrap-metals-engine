@@ -5,23 +5,26 @@ import {
   Metal,
   MetalOrder,
   Order,
+  OrderHistory,
   orderSearchableFields,
   OrderStatus,
   Vehicle,
   type IUser,
 } from '@repo/db'
 import httpStatus from 'http-status'
-import { AppError } from '@repo/shared'
-import { Types, type PipelineStage } from 'mongoose'
+import { AppError, ROLE_RANK } from '@repo/shared'
+import mongoose, { Types, type PipelineStage } from 'mongoose'
 
 import type {
   TCreateVihecleOrderPayloadType,
   TGetAllOrderQueryParamsType,
   TCreateMetalOrderPayloadType,
+  TVehicleQouteRequestPayloadType,
 } from './order.validations'
 import { generateUniqueOrderNumber } from './order.utils'
 import { uploadMultipleFileToS3 } from 'packages/media-hub/src'
 
+// ? 1. Create vehicle
 const createVehicleOrder = async (
   user: IUser,
   payload: TCreateVihecleOrderPayloadType,
@@ -121,7 +124,7 @@ const createVehicleOrder = async (
 
   return order
 }
-
+// ? 2. Create metal
 const createMetalOrder = async (
   user: IUser,
   payload: TCreateMetalOrderPayloadType,
@@ -263,6 +266,109 @@ const createMetalOrder = async (
   return order
 }
 
+// ? 3. Vehicle qoute:
+const sendVehicleQoute = async (
+  user: IUser,
+  orderId: string,
+  payload: TVehicleQouteRequestPayloadType
+) => {
+  const {
+    model,
+    year,
+    pickupPrice,
+    qoutedPrice,
+    aluminumWeightLbs,
+    batteryWeightLbs,
+    breakageWeightLbs,
+    weightLbs,
+    wheelWeightLbs,
+  } = payload
+
+  // ?. Check is user rank greater than
+  const userRole = user.role as 'superadmin' | 'admin' | 'customer' | 'staff'
+  if (ROLE_RANK[userRole] <= ROLE_RANK.customer) {
+    throw new AppError(httpStatus.BAD_REQUEST, "You don't have persmission to send qoute")
+  }
+
+  // ? Check is order exists :
+  const existigOrder = await Order.findById(orderId)
+  if (!existigOrder) {
+    throw new AppError(httpStatus.NOT_FOUND, "Order doesn't exist.")
+  }
+
+  // ? Check is order status pending?:
+  if (existigOrder?.status !== OrderStatus.PENDING) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Qoute not allowed for "${existigOrder?.status}" order.`
+    )
+  }
+
+  // Prepare session:
+  const session = await mongoose.startSession()
+
+  const totalPrice = Number(qoutedPrice) + Number(pickupPrice)
+  try {
+    await session.startTransaction()
+
+    // ? Updated Order
+    const updatedOrder = await Vehicle.findOneAndUpdate(
+      {
+        _id: existigOrder?._id,
+      },
+      {
+        $set: {
+          model,
+          year,
+          spcs: {
+            aluminumWeightLbs: aluminumWeightLbs ?? 0,
+            batteryWeightLbs: batteryWeightLbs ?? 0,
+            breakageWeightLbs: breakageWeightLbs ?? 0,
+            weightLbs: weightLbs ?? 0,
+            wheelWeightLbs: wheelWeightLbs ?? 0,
+          },
+          subTotal: qoutedPrice,
+          qoutedPrice,
+          pickupPrice,
+          totalPrice,
+          status: OrderStatus.QOUTED,
+        },
+      },
+      {
+        new: true,
+        session,
+      }
+    )
+
+    if (!updatedOrder?._id) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Failed to update the order!')
+    }
+
+    // ? Update Order status:
+
+    await OrderHistory.create(
+      [
+        {
+          order: updatedOrder?._id,
+          status: OrderStatus.QOUTED,
+          previousStatus: existigOrder?.status,
+          changedBy: user?._id,
+          title: `Qouted Received`,
+          note: `${user.name} has qouted your request for ${qoutedPrice}`,
+        },
+      ],
+      { session }
+    )
+
+    await session.commitTransaction()
+  } catch (err: any) {
+    await session.abortTransaction()
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, err.message)
+  } finally {
+    await session.endSession()
+  }
+}
+
 const getAllOrder = async (query: TGetAllOrderQueryParamsType) => {
   const {
     page = 1,
@@ -390,6 +496,7 @@ const deleteOrderById = async (id: string) => {
 export const orderServices = {
   createVehicleOrder,
   createMetalOrder,
+  sendVehicleQoute,
   getAllOrder,
   getOrderById,
   deleteOrderById,

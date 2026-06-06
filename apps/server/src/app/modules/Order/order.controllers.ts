@@ -30,6 +30,19 @@ const createMetalOrder = catchAsync(async (req, res) => {
   })
 })
 
+const sendVehicleQoute = catchAsync(async (req, res) => {
+  const user = await getUserFromRequest(req)
+  const orderId = req.params.id as string
+  const result = await orderServices.sendVehicleQoute(user, orderId, req.body)
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.CREATED,
+    message: 'Qoute request send successfully!',
+    data: result,
+  })
+})
+
 const getAllOrder = catchAsync(async (req, res) => {
   const result = await orderServices.getAllOrder(req.query)
 
@@ -67,7 +80,7 @@ const deleteOrderById = catchAsync(async (req, res) => {
 export const orderControllers = {
   createVehicleOrder,
   createMetalOrder,
-
+  sendVehicleQoute,
   getAllOrder,
   getOrderById,
   deleteOrderById,

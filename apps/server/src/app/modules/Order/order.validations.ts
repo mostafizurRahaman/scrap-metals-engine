@@ -11,6 +11,7 @@ import {
   requiredDate,
   requiredMongooseId,
   positiveNumber,
+  requiredNumber,
 } from '@repo/shared'
 import { DeliveryMethod, deliveryMethodValues, orderSortableFields } from '@repo/db'
 
@@ -120,6 +121,65 @@ const createMetalOrder = z.object({
   }),
 })
 
+const vehicleOrderQouteRequest = z.object({
+  params: z.object({
+    id: requiredMongooseId('ID'),
+  }),
+  body: z.object({
+    model: requiredString('Name'),
+    year: z.coerce
+      .number({
+        error: `Year is required`,
+      })
+      .int({
+        message: `Year must be a whole number`,
+      })
+      .min(1900, {
+        message: `Year must be 1900 or later`,
+      })
+      .max(new Date().getFullYear(), {
+        message: `Year cannot be in the future`,
+      }),
+    weightLbs: z
+      .number()
+      .min(0, {
+        message: 'Weight must be greater than or equal to 0',
+      })
+      .optional(),
+
+    aluminumWeightLbs: z
+      .number()
+      .min(0, {
+        message: 'Aluminum weight must be greater than or equal to 0',
+      })
+      .optional(),
+
+    wheelWeightLbs: z
+      .number()
+      .min(0, {
+        message: 'Wheel weight must be greater than or equal to 0',
+      })
+      .optional(),
+
+    batteryWeightLbs: z
+      .number()
+      .min(0, {
+        message: 'Battery weight must be greater than or equal to 0',
+      })
+      .optional(),
+
+    breakageWeightLbs: z
+      .number()
+      .min(0, {
+        message: 'Breakage weight must be greater than or equal to 0',
+      })
+      .optional(),
+
+    pickupPrice: requiredNumber('Pickup price').min(0, 'Pickup price should be min 0.'),
+    qoutedPrice: requiredNumber('Qouted price').min(0, 'Qouted price should be min 0'),
+  }),
+})
+
 const updateOrderSchema = z.object({
   params: z.object({
     id: requiredString('ID'),
@@ -158,6 +218,9 @@ export const orderValidations = {
   getAllOrderSchema,
   getOrderByIdSchema,
   deleteOrderByIdSchema,
+
+  // Qoute Request:
+  vehicleOrderQouteRequest,
 }
 
 export type TCreateVihecleOrderPayloadType = z.infer<typeof createVihecleOrderSchema.shape.body>
@@ -168,3 +231,5 @@ export type TUpdateOrderPayloadType = z.infer<typeof updateOrderSchema.shape.bod
 export type TGetAllOrderQueryParamsType = z.infer<typeof getAllOrderSchema.shape.query>
 export type TGetOrderByIdParamsType = z.infer<typeof getOrderByIdSchema.shape.params>
 export type TDeleteOrderByIdParamsType = z.infer<typeof deleteOrderByIdSchema.shape.params>
+
+export type TVehicleQouteRequestPayloadType = z.infer<typeof vehicleOrderQouteRequest.shape.body>

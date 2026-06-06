@@ -30,6 +30,13 @@ router.post(
   orderControllers.createMetalOrder
 )
 
+router.post(
+  '/vehicle/qoute/:id',
+  auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN),
+  validateRequest(orderValidations.vehicleOrderQouteRequest),
+  orderControllers.sendVehicleQoute
+)
+
 router.get(
   '/all',
   validateRequest(orderValidations.getAllOrderSchema),
