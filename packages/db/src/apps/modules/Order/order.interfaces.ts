@@ -7,7 +7,6 @@ import type {
 } from './order.constants'
 
 export interface IOrder {
-  id: Types.ObjectId
   orderNumber: string
   customer: Types.ObjectId
   employee: Types.ObjectId

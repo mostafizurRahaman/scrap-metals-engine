@@ -618,7 +618,6 @@ const acceptQouteRequest = async (user: IUser, orderId: string) => {
 }
 
 // ? 6. Cancel Order (Customer)
-
 const cancelOrderById = async (user: IUser, orderId: string) => {
   // ? Check is order exists :
   const existingOrder = await Order.findById(orderId)
@@ -829,5 +828,4 @@ export const orderServices = {
 
   // cancel order:
   cancelOrderById,
-  
 }
