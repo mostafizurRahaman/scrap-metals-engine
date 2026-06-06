@@ -237,6 +237,12 @@ const metalOrderQouteRequest = z.object({
     }),
 })
 
+const acceptQouteRequestSchema = z.object({
+  params: z.object({
+    id: requiredMongooseId('ID'),
+  }),
+})
+
 const updateOrderSchema = z.object({
   params: z.object({
     id: requiredString('ID'),
@@ -279,6 +285,7 @@ export const orderValidations = {
   // Qoute Request:
   vehicleOrderQouteRequest,
   metalOrderQouteRequest,
+  acceptQouteRequestSchema,
 }
 
 export type TCreateVihecleOrderPayloadType = z.infer<typeof createVihecleOrderSchema.shape.body>
@@ -293,3 +300,5 @@ export type TDeleteOrderByIdParamsType = z.infer<typeof deleteOrderByIdSchema.sh
 export type TVehicleQouteRequestPayloadType = z.infer<typeof vehicleOrderQouteRequest.shape.body>
 
 export type TMetalQouteRequestPayloadType = z.infer<typeof metalOrderQouteRequest.shape.body>
+
+export type TAcceptQouteRequestParams = z.infer<typeof acceptQouteRequestSchema.shape.params>

@@ -438,7 +438,7 @@ const sendVehicleQoute = async (
   }
 }
 
-// ? 3. Metal qoute:
+// ? 4. Metal qoute:
 const sendMetalQoute = async (
   user: IUser,
   orderId: string,
@@ -523,6 +523,84 @@ const sendMetalQoute = async (
             status === OrderStatus.ACCEPTED
               ? 'You order is accepted.'
               : `${user.name} has qouted your request for ${qoutedPrice || 0}`,
+        },
+      ],
+      { session }
+    )
+
+    await session.commitTransaction()
+
+    return updatedOrder
+  } catch (err: any) {
+    await session.abortTransaction()
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, err.message)
+  } finally {
+    await session.endSession()
+  }
+}
+
+// ? 5. Qoute Request Accept (customer)
+const acceptQouteRequest = async (user: IUser, orderId: string) => {
+  // ? Check is order exists :
+  const existigOrder = await Vehicle.findById(orderId)
+  if (!existigOrder) {
+    throw new AppError(httpStatus.NOT_FOUND, "Order doesn't exist.")
+  }
+
+  // ? Validate order type:
+  if (existigOrder.orderType !== OrderType.VEHICLE) {
+    throw new AppError(httpStatus.BAD_REQUEST, `Only you can accept qoute for vehicle order.`)
+  }
+
+  // ? Check is order status pending?:
+  if (existigOrder?.status !== OrderStatus.QOUTED) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Accept qoute not allowed for "${existigOrder?.status}" order.`
+    )
+  }
+
+  // ? check is this  order belongs to this customer:
+  if (existigOrder.customer?.toString() !== user?._id?.toString()) {
+    throw new AppError(httpStatus.FORBIDDEN, `You have no permission to accept this order!`)
+  }
+
+  // Prepare session:
+  const session = await mongoose.startSession()
+
+  try {
+    await session.startTransaction()
+
+    // ? Updated Order
+    const updatedOrder = await Vehicle.findOneAndUpdate(
+      {
+        _id: existigOrder?._id,
+      },
+      {
+        $set: {
+          status: OrderStatus.ACCEPTED,
+        },
+      },
+      {
+        new: true,
+        session,
+      }
+    )
+
+    if (!updatedOrder?._id) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Failed to update the order!')
+    }
+
+    // ? Update Order status:
+    await OrderHistory.create(
+      [
+        {
+          order: updatedOrder._id,
+          status: updatedOrder.status,
+          previousStatus: existigOrder?.status,
+          changedBy: user?._id,
+          title: 'Order Accepted',
+          note: 'You order is accepted.',
         },
       ],
       { session }
@@ -673,4 +751,5 @@ export const orderServices = {
   // Qoute request:
   sendVehicleQoute,
   sendMetalQoute,
+  acceptQouteRequest,
 }

@@ -37,7 +37,7 @@ const sendVehicleQoute = catchAsync(async (req, res) => {
 
   sendResponse(res, {
     success: true,
-    statusCode: httpStatus.CREATED,
+    statusCode: httpStatus.OK,
     message: 'Qoute request send successfully!',
     data: result,
   })
@@ -50,8 +50,21 @@ const sendMetalQoute = catchAsync(async (req, res) => {
 
   sendResponse(res, {
     success: true,
-    statusCode: httpStatus.CREATED,
+    statusCode: httpStatus.OK,
     message: 'Qoute request send successfully!',
+    data: result,
+  })
+})
+
+const acceptQouteRequest = catchAsync(async (req, res) => {
+  const user = await getUserFromRequest(req)
+  const orderId = req.params.id as string
+  const result = await orderServices.acceptQouteRequest(user, orderId)
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Qoute request has been accepted successfully!',
     data: result,
   })
 })
@@ -100,4 +113,5 @@ export const orderControllers = {
   // Qoute request:
   sendVehicleQoute,
   sendMetalQoute,
+  acceptQouteRequest,
 }
