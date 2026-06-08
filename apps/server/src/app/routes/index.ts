@@ -20,7 +20,7 @@ const routes = [
     route: orderRoutes,
   },
   {
-    path: '/assign-employee',
+    path: '/assignment',
     route: assignedEmployeeRoutes,
   },
 ]

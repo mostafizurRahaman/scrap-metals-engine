@@ -544,15 +544,15 @@ const sendMetalQoute = async (
 // ? 5. Qoute Request Accept (customer)
 const acceptQouteRequest = async (user: IUser, orderId: string) => {
   // ? Check is order exists :
-  const existigOrder = await Vehicle.findById(orderId)
+  const existigOrder = await Order.findById(orderId)
   if (!existigOrder) {
     throw new AppError(httpStatus.NOT_FOUND, "Order doesn't exist.")
   }
 
-  // ? Validate order type:
-  if (existigOrder.orderType !== OrderType.VEHICLE) {
-    throw new AppError(httpStatus.BAD_REQUEST, `Only you can accept qoute for vehicle order.`)
-  }
+  // // ? Validate order type:
+  // if (existigOrder.orderType !== OrderType.VEHICLE) {
+  //   throw new AppError(httpStatus.BAD_REQUEST, `Only you can accept qoute for vehicle order.`)
+  // }
 
   // ? Check is order status pending?:
   if (existigOrder?.status !== OrderStatus.QOUTED) {
@@ -574,7 +574,7 @@ const acceptQouteRequest = async (user: IUser, orderId: string) => {
     await session.startTransaction()
 
     // ? Updated Order
-    const updatedOrder = await Vehicle.findOneAndUpdate(
+    const updatedOrder = await Order.findOneAndUpdate(
       {
         _id: existigOrder?._id,
       },
@@ -1008,7 +1008,7 @@ const completePickupOrder = async (user: IUser, orderId: string) => {
     )
 
     await session.commitTransaction()
-    return { order: updatedOrder, assignment: updatedAssignment }
+    return updatedOrder
   } catch (err: any) {
     await session.abortTransaction()
     throw err instanceof AppError

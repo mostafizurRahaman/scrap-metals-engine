@@ -17,7 +17,7 @@ router.post(
 router.post(
   '/cancel/:id',
   auth(AuthRoles.STAFF),
-  validateRequest(assignedEmployeeValidations.createAssignedEmployeeSchema),
+  validateRequest(assignedEmployeeValidations.cancelAssignedEmployeeById),
   assignedEmployeeControllers.cancelAssignedEmployee
 )
 
