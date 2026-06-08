@@ -13,7 +13,12 @@ import {
   positiveNumber,
   requiredNumber,
 } from '@repo/shared'
-import { DeliveryMethod, deliveryMethodValues, orderSortableFields } from '@repo/db'
+import {
+  DeliveryMethod,
+  deliveryMethodValues,
+  orderSortableFields,
+  orderStatusValues,
+} from '@repo/db'
 
 const createVihecleOrderSchema = z
   .object({
@@ -281,6 +286,7 @@ const getAllOrderSchema = z.object({
     searchTerm: optionalString('Search term'),
     sortOrder: optionalEnumString(sortingOrderValues, 'Sort order'),
     sortBy: optionalEnumString(orderSortableFields, 'Sort by'),
+    status: optionalEnumString(orderStatusValues, 'Status'),
     fromDate: optionalDate('From date'),
     toDate: optionalDate('To date'),
   }),

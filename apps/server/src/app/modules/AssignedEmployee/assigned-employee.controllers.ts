@@ -45,19 +45,6 @@ const acceptAssignmentById = catchAsync(async (req, res) => {
   })
 })
 
-const updateAssignedEmployee = catchAsync(async (req, res) => {
-  const result = await assignedEmployeeServices.updateAssignedEmployee(
-    req.params.id as string,
-    req.body
-  )
-
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: 'The assigned employee updated successfully!',
-    data: result,
-  })
-})
 
 const getAllAssignedEmployee = catchAsync(async (req, res) => {
   const result = await assignedEmployeeServices.getAllAssignedEmployee(req.query)
@@ -98,7 +85,7 @@ export const assignedEmployeeControllers = {
   cancelAssignedEmployee,
   acceptAssignmentById,
 
-  updateAssignedEmployee,
+ 
   getAllAssignedEmployee,
   getAssignedEmployeeById,
   deleteAssignedEmployeeById,

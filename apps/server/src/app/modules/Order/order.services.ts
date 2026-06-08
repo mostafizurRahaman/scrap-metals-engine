@@ -14,9 +14,11 @@ import {
   OrderType,
   Vehicle,
   type IUser,
+  type TAuthStatus,
+  type TOrderStatusType,
 } from '@repo/db'
 import httpStatus from 'http-status'
-import { AppError, ROLE_RANK } from '@repo/shared'
+import { AppError, formatQuery, ROLE_RANK, type BaseQueryParams } from '@repo/shared'
 import mongoose, { Types, type PipelineStage } from 'mongoose'
 
 import type {
@@ -27,7 +29,7 @@ import type {
   TMetalQouteRequestPayloadType,
 } from './order.validations'
 import { generateUniqueOrderNumber } from './order.utils'
-import { uploadMultipleFileToS3 } from 'packages/media-hub/src'
+import { uploadMultipleFileToS3 } from '@repo/media-hub'
 
 // ? 1. Create vehicle
 const createVehicleOrder = async (
@@ -459,7 +461,6 @@ const sendMetalQoute = async (
   if (!existigOrder) {
     throw new AppError(httpStatus.NOT_FOUND, "Order doesn't exist.")
   }
-  console.log(existigOrder, OrderType.METALS)
 
   // ? Validate order type:
   if (existigOrder.orderType !== OrderType.METALS) {
@@ -1019,27 +1020,262 @@ const completePickupOrder = async (user: IUser, orderId: string) => {
   }
 }
 
-const getAllOrder = async (query: TGetAllOrderQueryParamsType) => {
-  const {
-    page = 1,
-    limit = 10,
-    searchTerm,
-    sortOrder = 'desc',
-    sortBy = 'createdAt',
-    fromDate,
-    toDate,
-  } = query
+const getCustomerAllOrder = async (user: IUser, query: TGetAllOrderQueryParamsType) => {
+  const { status } = query
+  console.log(status)
+  const { page, limit, fromDate, toDate, dateFilter, searchTerm, skip, sortBy, sortOrder } =
+    formatQuery(query as BaseQueryParams)
 
-  const skip = (page - 1) * limit
+  const pipeline: PipelineStage[] = [
+    {
+      $match: {
+        customer: user?._id,
+      },
+    },
+  ]
+
+  if (fromDate || toDate) {
+    pipeline.push({ $match: { createdAt: dateFilter } })
+  }
+
+  if (status) {
+    const individualStatus = [
+      OrderStatus.PENDING,
+      OrderStatus.CANCELLED,
+      OrderStatus.COMPLETED,
+      OrderStatus.QOUTED,
+    ]
+
+    if (individualStatus.includes(status)) {
+      pipeline.push({
+        $match: {
+          status,
+        },
+      })
+    } else {
+      pipeline.push({
+        $match: {
+          status: {
+            $in: [
+              OrderStatus.ACCEPTED,
+              OrderStatus.ASSIGNED,
+              OrderStatus.ON_THE_WAY,
+              OrderStatus.RECEIVED,
+            ],
+          },
+        },
+      })
+    }
+  }
+
+  pipeline.push(
+    {
+      $lookup: {
+        localField: 'customer',
+        foreignField: '_id',
+        from: 'users',
+        as: 'customerDetails',
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              email: 1,
+              phoneNumber: 1,
+              address: 1,
+            },
+          },
+        ],
+      },
+    },
+
+    {
+      $unwind: {
+        path: '$customerDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        localField: 'employee',
+        foreignField: '_id',
+        from: 'users',
+        as: 'employee',
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              email: 1,
+              phoneNumber: 1,
+              address: 1,
+            },
+          },
+        ],
+      },
+    },
+
+    {
+      $unwind: {
+        path: '$employee',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $addFields: {
+        orderId: '$_id',
+        customerId: '$customerDetails._id',
+        customerName: '$customerDetails.name',
+        customerEmail: '$customerDetails.email',
+        customerPhoneNumber: '$customerDetails.phoneNumber',
+        customerAddress: '$customerDetails.address',
+        employeeId: '$employee._id',
+        employeeName: '$employee.name',
+        employeeEmail: '$employee.email',
+        employeePhoneNumber: '$employee.phoneNumber',
+        employeeAddress: '$employee.address',
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        customerDetails: 0,
+        employee: 0,
+      },
+    }
+  )
+
+  if (searchTerm) {
+    pipeline.push({
+      $match: {
+        $or: orderSearchableFields.map((field) => ({
+          [field]: { $regex: searchTerm, $options: 'i' },
+        })),
+      },
+    })
+  }
+
+  pipeline.push({ $sort: { [sortBy]: sortOrder === 'asc' ? 1 : -1 } })
+
+  pipeline.push({
+    $facet: {
+      data: [{ $skip: skip }, { $limit: limit }],
+      meta: [{ $count: 'total' }],
+    },
+  })
+
+  const aggregated = await Order.aggregate(pipeline)
+
+  const data = aggregated?.[0]?.data || []
+  const total = aggregated?.[0]?.meta?.[0]?.total || 0
+
+  return {
+    data,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit) || 1,
+    },
+  }
+}
+
+const getAdminAllOrder = async (query: TGetAllOrderQueryParamsType) => {
+  const { status } = query
+
+  const { page, limit, fromDate, toDate, dateFilter, searchTerm, skip, sortBy, sortOrder } =
+    formatQuery(query as BaseQueryParams)
+
   const pipeline: PipelineStage[] = []
 
   if (fromDate || toDate) {
-    const dateFilter: Record<string, unknown> = {}
-    if (fromDate) dateFilter.$gte = new Date(fromDate)
-    if (toDate) dateFilter.$lte = new Date(toDate)
-
     pipeline.push({ $match: { createdAt: dateFilter } })
   }
+
+  if (status) {
+    pipeline.push({
+      $match: {
+        status,
+      },
+    })
+  }
+
+  pipeline.push(
+    {
+      $lookup: {
+        localField: 'customer',
+        foreignField: '_id',
+        from: 'users',
+        as: 'customerDetails',
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              email: 1,
+              phoneNumber: 1,
+              address: 1,
+            },
+          },
+        ],
+      },
+    },
+
+    {
+      $unwind: {
+        path: '$customerDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $lookup: {
+        localField: 'employee',
+        foreignField: '_id',
+        from: 'users',
+        as: 'employee',
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              email: 1,
+              phoneNumber: 1,
+              address: 1,
+            },
+          },
+        ],
+      },
+    },
+
+    {
+      $unwind: {
+        path: '$employee',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $addFields: {
+        orderId: '$_id',
+        customerId: '$customerDetails._id',
+        customerName: '$customerDetails.name',
+        customerEmail: '$customerDetails.email',
+        customerPhoneNumber: '$customerDetails.phoneNumber',
+        customerAddress: '$customerDetails.address',
+        employeeId: '$employee._id',
+        employeeName: '$employee.name',
+        employeeEmail: '$employee.email',
+        employeePhoneNumber: '$employee.phoneNumber',
+        employeeAddress: '$employee.address',
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        customerDetails: 0,
+        employee: 0,
+      },
+    }
+  )
 
   if (searchTerm) {
     pipeline.push({
@@ -1133,22 +1369,23 @@ const getOrderById = async (id: string) => {
   return result[0]
 }
 
-const deleteOrderById = async (id: string) => {
-  const result = await Order.findOneAndDelete({ _id: id })
+// const deleteOrderById = async (id: string) => {
+//   const result = await Order.findOneAndDelete({ _id: id })
 
-  if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Order not found')
-  }
+//   if (!result) {
+//     throw new AppError(httpStatus.NOT_FOUND, 'Order not found')
+//   }
 
-  return result
-}
+//   return result
+// }
 
 export const orderServices = {
   createVehicleOrder,
   createMetalOrder,
-  getAllOrder,
+  getCustomerAllOrder,
+  getAdminAllOrder,
   getOrderById,
-  deleteOrderById,
+  // deleteOrderById,
 
   // Qoute request:
   sendVehicleQoute,

@@ -28,11 +28,7 @@ router.post(
   assignedEmployeeControllers.acceptAssignmentById
 )
 
-router.patch(
-  '/:id',
-  validateRequest(assignedEmployeeValidations.updateAssignedEmployeeSchema),
-  assignedEmployeeControllers.updateAssignedEmployee
-)
+
 
 router.get(
   '/all',

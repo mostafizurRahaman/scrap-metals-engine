@@ -94,13 +94,22 @@ router.post(
   validateRequest(orderValidations.completePickupOrderSchema),
   orderControllers.completePickupOrder
 )
-
+// ? Get all customer orders
 router.get(
-  '/all',
+  '/customer/all',
+  auth(AuthRoles.CUSTOMER),
   validateRequest(orderValidations.getAllOrderSchema),
-  orderControllers.getAllOrder
+  orderControllers.getCustomerAllOrder
+)
+// ? Get all orders (Admin)
+router.get(
+  '/admin/all',
+  auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN),
+  validateRequest(orderValidations.getAllOrderSchema),
+  orderControllers.getAdminAllOrder
 )
 
+// ? Get Order details (All role)
 router.get(
   '/:id',
   validateRequest(orderValidations.getOrderByIdSchema),

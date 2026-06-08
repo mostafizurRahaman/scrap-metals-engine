@@ -19,7 +19,7 @@ import type { PipelineStage } from 'mongoose'
 
 import type {
   TCreateAssignedEmployeePayloadType,
-  TUpdateAssignedEmployeePayloadType,
+ 
   TGetAllAssignedEmployeeQueryParamsType,
   TCancelAssignedEmployeeByIdPayload,
 } from './assigned-employee.validations'
@@ -349,19 +349,7 @@ const acceptAssignmentById = async (user: IUser, assignedId: string) => {
   }
 }
 
-const updateAssignedEmployee = async (id: string, payload: TUpdateAssignedEmployeePayloadType) => {
-  const result = await AssignedEmployee.findOneAndUpdate(
-    { _id: id },
-    { $set: payload },
-    { new: true }
-  )
 
-  if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, 'AssignedEmployee not found')
-  }
-
-  return result
-}
 
 const getAllAssignedEmployee = async (query: TGetAllAssignedEmployeeQueryParamsType) => {
   const {
@@ -447,7 +435,7 @@ export const assignedEmployeeServices = {
   // ? Accept the assignment:
   acceptAssignmentById,
 
-  updateAssignedEmployee,
+
   getAllAssignedEmployee,
   getAssignedEmployeeById,
   deleteAssignedEmployeeById,

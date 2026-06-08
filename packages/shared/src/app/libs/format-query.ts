@@ -40,4 +40,3 @@ export const formatQuery = (query: BaseQueryParams) => {
     dateFilter,
   }
 }
-   
