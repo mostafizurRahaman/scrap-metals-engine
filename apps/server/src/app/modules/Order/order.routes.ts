@@ -64,6 +64,37 @@ router.post(
   orderControllers.cancelOrderById
 )
 
+// ? Order on the way:
+router.post(
+  '/on-the-way/:id',
+  auth(AuthRoles.STAFF),
+  validateRequest(orderValidations.startOnTheWaySchema),
+  orderControllers.startOnTheWay
+)
+
+// ? Order Received :
+router.post(
+  '/received/:id',
+  auth(AuthRoles.STAFF),
+  validateRequest(orderValidations.receiveOrderSchema),
+  orderControllers.receiveOrder
+)
+
+// ? Order Completed (Drop off)
+router.post(
+  '/complete/dropoff/:id',
+  auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN),
+  validateRequest(orderValidations.completeDropoffOrderSchema),
+  orderControllers.completeDropoffOrder
+)
+// ? Order Completed (Pikcup)
+router.post(
+  '/complete/pickup/:id',
+  auth(AuthRoles.STAFF),
+  validateRequest(orderValidations.completePickupOrderSchema),
+  orderControllers.completePickupOrder
+)
+
 router.get(
   '/all',
   validateRequest(orderValidations.getAllOrderSchema),
