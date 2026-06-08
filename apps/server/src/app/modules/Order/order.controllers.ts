@@ -134,8 +134,21 @@ const completePickupOrder = catchAsync(async (req, res) => {
   })
 })
 
-const getAllOrder = catchAsync(async (req, res) => {
-  const result = await orderServices.getAllOrder(req.query)
+const getCustomerAllOrder = catchAsync(async (req, res) => {
+  const user = await getUserFromRequest(req)
+  const result = await orderServices.getCustomerAllOrder(user, req.query)
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'The order retrieved successfully!',
+    data: result.data,
+    meta: result.meta,
+  })
+})
+
+const getAdminAllOrder = catchAsync(async (req, res) => {
+  const result = await orderServices.getAdminAllOrder(req.query)
 
   sendResponse(res, {
     success: true,
@@ -171,7 +184,8 @@ const deleteOrderById = catchAsync(async (req, res) => {
 export const orderControllers = {
   createVehicleOrder,
   createMetalOrder,
-  getAllOrder,
+  getCustomerAllOrder,
+  getAdminAllOrder,
   getOrderById,
   deleteOrderById,
 

@@ -32,7 +32,7 @@ import { deleteSingleFileFromS3, uploadSingleFileToS3 } from '@repo/media-hub'
 
 // 1. Signup
 const signUp = async (payload: ISignUpSchemaType, file: Express.Multer.File) => {
-  const { name, email, password } = payload
+  const { name, email, password, phoneNumber, address } = payload
 
   // 1. Check existing user
   const existingUser = (await User.isUserExistByEmail(email)) as IUser
@@ -80,6 +80,8 @@ const signUp = async (payload: ISignUpSchemaType, file: Express.Multer.File) => 
     const newUserPayload: Record<string, unknown> = {
       name,
       email,
+      phoneNumber,
+      address,
       password: hashedPassword,
       status: AuthStatus.PENDING,
       role: AuthRoles.CUSTOMER,

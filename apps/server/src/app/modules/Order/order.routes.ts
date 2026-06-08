@@ -96,9 +96,17 @@ router.post(
 )
 
 router.get(
-  '/all',
+  '/customer/all',
+  auth(AuthRoles.CUSTOMER),
   validateRequest(orderValidations.getAllOrderSchema),
-  orderControllers.getAllOrder
+  orderControllers.getCustomerAllOrder
+)
+
+router.get(
+  '/admin/all',
+  auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN),
+  validateRequest(orderValidations.getAllOrderSchema),
+  orderControllers.getAdminAllOrder
 )
 
 router.get(

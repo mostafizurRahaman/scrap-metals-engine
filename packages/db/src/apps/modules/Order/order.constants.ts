@@ -1,6 +1,23 @@
-export const orderSearchableFields = ['name'] as const
+export const orderSearchableFields = [
+  'name',
+  'customerEmail',
+  'customerName',
+  'employeeEmail',
+  'employeeName',
+  'orderNumber',
+] as const
 
-export const orderSortableFields = ['createdAt', 'updatedAt'] as const
+export const orderSortableFields = [
+  'createdAt',
+  'orderNumber',
+  'updatedAt',
+  'preferredDate',
+  'status',
+  'customerEmail',
+  'customerName',
+  'employeeEmail',
+  'employeeName',
+] as const
 
 export const OrderType = {
   VEHICLE: 'Vehicle',
