@@ -17,6 +17,21 @@ const createAssignedEmployeeSchema = z.object({
   }),
 })
 
+const cancelAssignedEmployeeById = z.object({
+  params: z.object({
+    id: requiredMongooseId('Assigned ID'),
+  }),
+  body: z.object({
+    reason: optionalString('Reason'),
+  }),
+})
+
+const acceptAssignmentSchema = z.object({
+  params: z.object({
+    id: requiredMongooseId('Assignment ID'),
+  }),
+})
+
 const updateAssignedEmployeeSchema = z.object({
   params: z.object({
     id: requiredString('ID'),
@@ -50,10 +65,12 @@ const deleteAssignedEmployeeByIdSchema = z.object({
 
 export const assignedEmployeeValidations = {
   createAssignedEmployeeSchema,
+  cancelAssignedEmployeeById,
   updateAssignedEmployeeSchema,
   getAllAssignedEmployeeSchema,
   getAssignedEmployeeByIdSchema,
   deleteAssignedEmployeeByIdSchema,
+  acceptAssignmentSchema,
 }
 
 export type TCreateAssignedEmployeePayloadType = z.infer<
@@ -70,4 +87,8 @@ export type TGetAssignedEmployeeByIdParamsType = z.infer<
 >
 export type TDeleteAssignedEmployeeByIdParamsType = z.infer<
   typeof deleteAssignedEmployeeByIdSchema.shape.params
+>
+
+export type TCancelAssignedEmployeeByIdPayload = z.infer<
+  typeof cancelAssignedEmployeeById.shape.body
 >

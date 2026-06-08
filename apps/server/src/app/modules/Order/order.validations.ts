@@ -243,6 +243,30 @@ const acceptQouteRequestSchema = z.object({
   }),
 })
 
+const startOnTheWaySchema = z.object({
+  params: z.object({
+    id: requiredMongooseId('Order ID'),
+  }),
+})
+
+const receiveOrderSchema = z.object({
+  params: z.object({
+    id: requiredMongooseId('Order ID'),
+  }),
+})
+
+const completeDropoffOrderSchema = z.object({
+  params: z.object({
+    id: requiredMongooseId('Order ID'),
+  }),
+})
+
+const completePickupOrderSchema = z.object({
+  params: z.object({
+    id: requiredMongooseId('Order ID'),
+  }),
+})
+
 const updateOrderSchema = z.object({
   params: z.object({
     id: requiredString('ID'),
@@ -286,6 +310,12 @@ export const orderValidations = {
   vehicleOrderQouteRequest,
   metalOrderQouteRequest,
   acceptQouteRequestSchema,
+
+  // Order Status Transitions
+  startOnTheWaySchema,
+  receiveOrderSchema,
+  completeDropoffOrderSchema,
+  completePickupOrderSchema,
 }
 
 export type TCreateVihecleOrderPayloadType = z.infer<typeof createVihecleOrderSchema.shape.body>

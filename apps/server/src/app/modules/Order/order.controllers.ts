@@ -82,6 +82,58 @@ const cancelOrderById = catchAsync(async (req, res) => {
   })
 })
 
+const startOnTheWay = catchAsync(async (req, res) => {
+  const user = await getUserFromRequest(req)
+  const orderId = req.params.id as string
+  const result = await orderServices.startOnTheWay(user, orderId)
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Trip started successfully. Order is now on the way!',
+    data: result,
+  })
+})
+
+const receiveOrder = catchAsync(async (req, res) => {
+  const user = await getUserFromRequest(req)
+  const orderId = req.params.id as string
+  const result = await orderServices.receiveOrder(user, orderId)
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Items successfully received by staff!',
+    data: result,
+  })
+})
+
+const completeDropoffOrder = catchAsync(async (req, res) => {
+  const user = await getUserFromRequest(req)
+  const orderId = req.params.id as string
+  const result = await orderServices.completeDropoffOrder(user, orderId)
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Drop-off order has been completed successfully!',
+    data: result,
+  })
+})
+
+const completePickupOrder = catchAsync(async (req, res) => {
+  const user = await getUserFromRequest(req)
+  const orderId = req.params.id as string
+  const result = await orderServices.completePickupOrder(user, orderId)
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Pickup order has been completed successfully!',
+    data: result,
+  })
+})
+
 const getAllOrder = catchAsync(async (req, res) => {
   const result = await orderServices.getAllOrder(req.query)
 
@@ -127,6 +179,14 @@ export const orderControllers = {
   sendVehicleQoute,
   sendMetalQoute,
   acceptQouteRequest,
+
+  // Status Transitions:
+  startOnTheWay,
+  receiveOrder,
+
+  // Completions:
+  completeDropoffOrder,
+  completePickupOrder,
 
   // Cancel order:
   cancelOrderById,

@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
+  AssignedEmployee,
   AuthRoles,
   DeliveryMethod,
+  employeeAssignStatus,
   GetPickupPoints,
   Metal,
   MetalOrder,
@@ -690,6 +692,333 @@ const cancelOrderById = async (user: IUser, orderId: string) => {
   }
 }
 
+// 7. Start on the way:
+const startOnTheWay = async (user: IUser, orderId: string) => {
+  // 1. Check if the assignment exists and is accepted by this employee
+  const assignment = await AssignedEmployee.findOne({
+    order: orderId,
+    employee: user?._id,
+    status: employeeAssignStatus.ACCEPTED,
+  })
+
+  if (!assignment) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      'No accepted assignment found for this order and employee.'
+    )
+  }
+
+  // 2. Check if the order itself exists and is currently ASSIGNED
+  const order = await Order.findById(orderId)
+  if (!order) {
+    throw new AppError(httpStatus.NOT_FOUND, "Order doesn't exist.")
+  }
+
+  if (order.status !== OrderStatus.ASSIGNED) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Cannot start trip. The order status must be ASSIGNED, current status: "${order.status}"`
+    )
+  }
+
+  const session = await mongoose.startSession()
+
+  try {
+    await session.startTransaction()
+
+    // 3. Update the Order status to 'on_the_way'
+    const updatedOrder = await Order.findOneAndUpdate(
+      {
+        _id: order._id,
+        status: OrderStatus.ASSIGNED,
+      },
+      {
+        $set: {
+          status: OrderStatus.ON_THE_WAY,
+        },
+      },
+      {
+        new: true,
+        session,
+      }
+    )
+
+    if (!updatedOrder) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Failed to update order status.')
+    }
+
+    // 4. Create an OrderHistory record
+    await OrderHistory.create(
+      [
+        {
+          order: updatedOrder._id,
+          status: OrderStatus.ON_THE_WAY,
+          previousStatus: OrderStatus.ASSIGNED,
+          changedBy: user?._id,
+          title: 'On the Way',
+          note: `Employee ${user.name || ''} is on the way to process the order.`,
+        },
+      ],
+      { session }
+    )
+
+    await session.commitTransaction()
+    return updatedOrder
+  } catch (err: any) {
+    await session.abortTransaction()
+    throw err instanceof AppError
+      ? err
+      : new AppError(httpStatus.INTERNAL_SERVER_ERROR, err.message || 'Something went wrong!')
+  } finally {
+    await session.endSession()
+  }
+}
+
+// 8. Received order (staff)
+
+const receiveOrder = async (user: IUser, orderId: string) => {
+  // 1. Verify the employee has an active and accepted assignment for this order
+  const assignment = await AssignedEmployee.findOne({
+    order: orderId,
+    employee: user?._id,
+    status: employeeAssignStatus.ACCEPTED,
+  })
+
+  if (!assignment) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      'No active assignment found for this order and employee.'
+    )
+  }
+
+  // 2. Fetch the order
+  const order = await Order.findById(orderId)
+  if (!order) {
+    throw new AppError(httpStatus.NOT_FOUND, "Order doesn't exist.")
+  }
+
+  // 3. Ensure the order is currently in ON_THE_WAY status
+  if (order.status !== OrderStatus.ON_THE_WAY) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Cannot mark as received. The order status must be ON_THE_WAY, current status: "${order.status}"`
+    )
+  }
+
+  const session = await mongoose.startSession()
+
+  try {
+    await session.startTransaction()
+
+    // 4. Update the Order status to RECEIVED
+    const updatedOrder = await Order.findOneAndUpdate(
+      {
+        _id: order._id,
+        status: OrderStatus.ON_THE_WAY,
+      },
+      {
+        $set: {
+          status: OrderStatus.RECEIVED,
+        },
+      },
+      {
+        new: true,
+        session,
+      }
+    )
+
+    if (!updatedOrder) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Failed to update order status to received.')
+    }
+
+    // 5. Create an OrderHistory record
+    await OrderHistory.create(
+      [
+        {
+          order: updatedOrder._id,
+          status: OrderStatus.RECEIVED,
+          previousStatus: OrderStatus.ON_THE_WAY,
+          changedBy: user?._id,
+          title: 'Items Received',
+          note: `Employee ${user.name || ''} has arrived and marked the items/vehicle as received.`,
+        },
+      ],
+      { session }
+    )
+
+    await session.commitTransaction()
+    return updatedOrder
+  } catch (err: any) {
+    await session.abortTransaction()
+    throw err instanceof AppError
+      ? err
+      : new AppError(httpStatus.INTERNAL_SERVER_ERROR, err.message || 'Something went wrong!')
+  } finally {
+    await session.endSession()
+  }
+}
+
+// 9. complete drop off order (admin, superadmin)
+const completeDropoffOrder = async (user: IUser, orderId: string) => {
+  const order = await Order.findById(orderId)
+  if (!order) {
+    throw new AppError(httpStatus.NOT_FOUND, "Order doesn't exist.")
+  }
+
+  // Ensure delivery type is drop_off
+  if (order.deliveryType !== DeliveryMethod.DROPOFF) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'This action is only allowed for drop-off type orders.'
+    )
+  }
+
+  // Ensure the order is in a completable state (Accepted/Received by facility)
+  if (![OrderStatus.ACCEPTED, OrderStatus.RECEIVED].includes(order.status)) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Cannot complete order. Status must be ACCEPTED or RECEIVED, current: "${order.status}"`
+    )
+  }
+
+  const session = await mongoose.startSession()
+
+  try {
+    await session.startTransaction()
+
+    const updatedOrder = await Order.findOneAndUpdate(
+      { _id: order._id },
+      { $set: { status: OrderStatus.COMPLETED } },
+      { new: true, session }
+    )
+
+    if (!updatedOrder) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Failed to complete drop-off order.')
+    }
+
+    // Record order history
+    await OrderHistory.create(
+      [
+        {
+          order: updatedOrder._id,
+          status: OrderStatus.COMPLETED,
+          previousStatus: order.status,
+          changedBy: user?._id,
+          title: 'Order Completed',
+          note: `Drop-off order successfully processed and completed by Administrator ${user.name || ''}.`,
+        },
+      ],
+      { session }
+    )
+
+    await session.commitTransaction()
+    return updatedOrder
+  } catch (err: any) {
+    await session.abortTransaction()
+    throw err instanceof AppError
+      ? err
+      : new AppError(httpStatus.INTERNAL_SERVER_ERROR, err.message)
+  } finally {
+    await session.endSession()
+  }
+}
+
+// 10. complete pickup order: (staff)
+const completePickupOrder = async (user: IUser, orderId: string) => {
+  // Check active assignment for this staff
+  const assignment = await AssignedEmployee.findOne({
+    order: orderId,
+    employee: user?._id,
+    status: employeeAssignStatus.ACCEPTED,
+  })
+
+  if (!assignment) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'You do not have an active accepted assignment for this order.'
+    )
+  }
+
+  const order = await Order.findById(orderId)
+  if (!order) {
+    throw new AppError(httpStatus.NOT_FOUND, "Order doesn't exist.")
+  }
+
+  // Ensure delivery type is pickup
+  if (order.deliveryType !== DeliveryMethod.PICKUP) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'This action is only allowed for pickup type orders.'
+    )
+  }
+
+  // Ensure staff has marked it as RECEIVED before completing
+  if (order.status !== OrderStatus.RECEIVED) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Cannot complete pickup order. Status must be RECEIVED, current: "${order.status}"`
+    )
+  }
+
+  const session = await mongoose.startSession()
+
+  try {
+    await session.startTransaction()
+
+    // Complete order
+    const updatedOrder = await Order.findOneAndUpdate(
+      { _id: order._id },
+      { $set: { status: OrderStatus.COMPLETED } },
+      { new: true, session }
+    )
+
+    if (!updatedOrder) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Failed to complete order.')
+    }
+
+    // Complete assignment
+    const updatedAssignment = await AssignedEmployee.findOneAndUpdate(
+      { _id: assignment._id },
+      {
+        $set: {
+          status: employeeAssignStatus.COMPLETED,
+          completedAt: new Date(),
+        },
+      },
+      { new: true, session }
+    )
+
+    if (!updatedAssignment) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Failed to complete the employee assignment.')
+    }
+
+    // Record order history
+    await OrderHistory.create(
+      [
+        {
+          order: updatedOrder._id,
+          status: OrderStatus.COMPLETED,
+          previousStatus: order.status,
+          changedBy: user?._id,
+          title: 'Order Completed',
+          note: `Pickup order picked up and completed by Employee ${user.name || ''}.`,
+        },
+      ],
+      { session }
+    )
+
+    await session.commitTransaction()
+    return { order: updatedOrder, assignment: updatedAssignment }
+  } catch (err: any) {
+    await session.abortTransaction()
+    throw err instanceof AppError
+      ? err
+      : new AppError(httpStatus.INTERNAL_SERVER_ERROR, err.message)
+  } finally {
+    await session.endSession()
+  }
+}
+
 const getAllOrder = async (query: TGetAllOrderQueryParamsType) => {
   const {
     page = 1,
@@ -825,6 +1154,14 @@ export const orderServices = {
   sendVehicleQoute,
   sendMetalQoute,
   acceptQouteRequest,
+
+  // Order Transitions
+  startOnTheWay,
+  receiveOrder,
+
+  // Order completion
+  completeDropoffOrder,
+  completePickupOrder,
 
   // cancel order:
   cancelOrderById,

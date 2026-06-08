@@ -2,13 +2,30 @@ import express, { Router } from 'express'
 import { validateRequest } from '@app/middlewares'
 import { assignedEmployeeControllers } from './assigned-employee.controllers'
 import { assignedEmployeeValidations } from './assigned-employee.validations'
+import { auth } from '@app/middlewares/auth'
+import { AuthRoles } from 'packages/db/src'
 
 const router: Router = express.Router()
 
 router.post(
-  '/assign',
+  '/',
+  auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN),
   validateRequest(assignedEmployeeValidations.createAssignedEmployeeSchema),
   assignedEmployeeControllers.createAssignedEmployee
+)
+
+router.post(
+  '/cancel/:id',
+  auth(AuthRoles.STAFF),
+  validateRequest(assignedEmployeeValidations.createAssignedEmployeeSchema),
+  assignedEmployeeControllers.cancelAssignedEmployee
+)
+
+router.post(
+  '/accept/:id',
+  auth(AuthRoles.STAFF),
+  validateRequest(assignedEmployeeValidations.acceptAssignmentSchema),
+  assignedEmployeeControllers.acceptAssignmentById
 )
 
 router.patch(

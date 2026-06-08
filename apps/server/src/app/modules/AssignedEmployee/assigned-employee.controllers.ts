@@ -3,14 +3,44 @@ import httpStatus from 'http-status'
 import { assignedEmployeeServices } from './assigned-employee.services'
 import { getUserFromRequest } from '@app/libs/get-user-from-requests'
 
+// ? 1. Create employee assignment.
 const createAssignedEmployee = catchAsync(async (req, res) => {
+  console.log('Request Boyd', req.body)
   const user = await getUserFromRequest(req)
   const result = await assignedEmployeeServices.createAssignedEmployee(user, req.body)
 
   sendResponse(res, {
     success: true,
-    statusCode: httpStatus.CREATED,
+    statusCode: httpStatus.OK,
     message: 'Employee assigned to order successfully.',
+    data: result,
+  })
+})
+
+// ? 2. Create employee assignment.
+const cancelAssignedEmployee = catchAsync(async (req, res) => {
+  const assignedId = req.params.id as string
+  const user = await getUserFromRequest(req)
+  const result = await assignedEmployeeServices.cancelAssignmentById(user, assignedId, req.body)
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Employee assigned to order successfully.',
+    data: result,
+  })
+})
+
+// ?. 3 Create accept assignment:
+const acceptAssignmentById = catchAsync(async (req, res) => {
+  const user = await getUserFromRequest(req)
+  const assignedId = req.params.id as string
+  const result = await assignedEmployeeServices.acceptAssignmentById(user, assignedId)
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Assignment accepted successfully!',
     data: result,
   })
 })
@@ -65,6 +95,9 @@ const deleteAssignedEmployeeById = catchAsync(async (req, res) => {
 
 export const assignedEmployeeControllers = {
   createAssignedEmployee,
+  cancelAssignedEmployee,
+  acceptAssignmentById,
+
   updateAssignedEmployee,
   getAllAssignedEmployee,
   getAssignedEmployeeById,
