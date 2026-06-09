@@ -41,7 +41,7 @@ router.get(
   assignedEmployeeControllers.getCurrentOngoingAssignment
 )
 
-router.get('/pending', auth(AuthRoles.STAFF), assignedEmployeeControllers.getPendingAssignment)
+// router.get('/pending', auth(AuthRoles.STAFF), assignedEmployeeControllers.getPendingAssignment)
 
 router.get(
   '/:id',

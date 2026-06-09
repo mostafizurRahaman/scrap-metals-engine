@@ -116,10 +116,4 @@ router.get(
   orderControllers.getOrderById
 )
 
-router.delete(
-  '/:id',
-  validateRequest(orderValidations.deleteOrderByIdSchema),
-  orderControllers.deleteOrderById
-)
-
 export const orderRoutes = router

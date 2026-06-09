@@ -84,17 +84,17 @@ const getCurrentOngoingAssignment = catchAsync(async (req, res) => {
   })
 })
 
-const getPendingAssignment = catchAsync(async (req, res) => {
-  const user = await getUserFromRequest(req)
-  const result = await assignedEmployeeServices.getPendingAssignment(user)
+// const getPendingAssignment = catchAsync(async (req, res) => {
+//   const user = await getUserFromRequest(req)
+//   const result = await assignedEmployeeServices.getCurrentOngoingAssignment(user)
 
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: 'Your ongoing assignment retrived successfully!',
-    data: result,
-  })
-})
+//   sendResponse(res, {
+//     success: true,
+//     statusCode: httpStatus.OK,
+//     message: 'Your ongoing assignment retrived successfully!',
+//     data: result,
+//   })
+// })
 
 export const assignedEmployeeControllers = {
   createAssignedEmployee,
@@ -103,5 +103,5 @@ export const assignedEmployeeControllers = {
   getAllAssignedEmployee,
   getAssignedEmployeeById,
   getCurrentOngoingAssignment,
-  getPendingAssignment,
+  // getPendingAssignment,
 }
