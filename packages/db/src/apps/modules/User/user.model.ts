@@ -148,4 +148,10 @@ userSchema.statics.isJwtIssuedBeforePasswordChanged = function (
   return jwtIssuedTime < passwordChangedAt.getTime()
 }
 
+userSchema.pre('aggregate', function () {
+  this.pipeline().push({
+    $unset: ['password', 'twoFactorBackupCodes'],
+  })
+})
+
 export const User = model<IUser, IUserModel>('User', userSchema)

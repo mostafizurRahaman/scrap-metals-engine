@@ -22,3 +22,6 @@ export const AuthRoles = {
 export const AuthRolesValues = Object.values(AuthRoles)
 
 export type TAuthRole = (typeof AuthRoles)[keyof typeof AuthRoles]
+
+export const userSearchableFields = ['name', 'email', 'phoneNumber']
+export const userSortableFields = ['name', 'email', 'phoneNumber', 'createdAt']
