@@ -2,6 +2,7 @@ import { assignedEmployeeRoutes } from '@app/modules/AssignedEmployee/assigned-e
 import { authRoutes } from '@app/modules/Auth/user.routes'
 import { metalRoutes } from '@app/modules/Metal/metal.routes'
 import { orderRoutes } from '@app/modules/Order/order.routes'
+import { orderHistoryRoutes } from '@app/modules/OrderHistory/order-history.routes'
 import express, { Router } from 'express'
 
 const router: Router = express.Router()
@@ -22,6 +23,10 @@ const routes = [
   {
     path: '/assignment',
     route: assignedEmployeeRoutes,
+  },
+  {
+    path: '/order-history',
+    route: orderHistoryRoutes,
   },
 ]
 
