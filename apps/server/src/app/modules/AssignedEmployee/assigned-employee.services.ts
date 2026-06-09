@@ -19,7 +19,6 @@ import type { PipelineStage } from 'mongoose'
 
 import type {
   TCreateAssignedEmployeePayloadType,
- 
   TGetAllAssignedEmployeeQueryParamsType,
   TCancelAssignedEmployeeByIdPayload,
 } from './assigned-employee.validations'
@@ -72,7 +71,7 @@ const createAssignedEmployee = async (user: IUser, payload: TCreateAssignedEmplo
     },
   })
 
-  if (assignedTask && Array.isArray(assignedTask) && assignedTask.length >= 1) {
+  if (assignedTask && Array.isArray(assignedTask) && assignedTask.length > 3) {
     throw new AppError(httpStatus.BAD_REQUEST, `Employee is busy. Assign another employee.`)
   }
 
@@ -349,8 +348,6 @@ const acceptAssignmentById = async (user: IUser, assignedId: string) => {
   }
 }
 
-
-
 const getAllAssignedEmployee = async (query: TGetAllAssignedEmployeeQueryParamsType) => {
   const {
     page = 1,
@@ -434,7 +431,6 @@ export const assignedEmployeeServices = {
 
   // ? Accept the assignment:
   acceptAssignmentById,
-
 
   getAllAssignedEmployee,
   getAssignedEmployeeById,
