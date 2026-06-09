@@ -36,6 +36,14 @@ router.get(
 )
 
 router.get(
+  '/ongoing',
+  auth(AuthRoles.STAFF),
+  assignedEmployeeControllers.getCurrentOngoingAssignment
+)
+
+router.get('/pending', auth(AuthRoles.STAFF), assignedEmployeeControllers.getPendingAssignment)
+
+router.get(
   '/:id',
   auth(AuthRoles.STAFF),
   validateRequest(assignedEmployeeValidations.getAssignedEmployeeByIdSchema),

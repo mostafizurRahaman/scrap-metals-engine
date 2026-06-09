@@ -652,6 +652,220 @@ const getAssignedEmployeeById = async (user: IUser, id: string) => {
   return assignment[0]
 }
 
+const getCurrentOngoingAssignment = async (user: IUser) => {
+  const pipeline: PipelineStage[] = []
+
+  pipeline.push(
+    {
+      $match: {
+        employee: user?._id,
+        status: employeeAssignStatus.ACCEPTED,
+      },
+    },
+    {
+      $lookup: {
+        localField: 'order',
+        foreignField: '_id',
+        from: 'orders',
+        as: 'orderDetails',
+        pipeline: [
+          {
+            $lookup: {
+              localField: 'customer',
+              foreignField: '_id',
+              from: 'users',
+              as: 'customerDetails',
+              pipeline: [
+                {
+                  $project: {
+                    _id: 1,
+                    name: 1,
+                    email: 1,
+                    phoneNumber: 1,
+                    address: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $unwind: {
+              path: '$customerDetails',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind: {
+        path: '$employeeDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $unwind: {
+        path: '$orderDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $addFields: {
+        orderId: '$_id',
+        orderNumber: '$orderDetails.orderNumber',
+        orderType: '$orderDetails.orderType',
+        deliveryType: '$orderDetails.deliveryType',
+        status: '$status',
+        orderStatus: '$orderDetails.status',
+        orderPlacedAt: '$orderDetails.orderRequestedAt',
+        preferredDate: '$orderDetails.prefferredDate',
+        pickupAddress: '$orderDetails.pickupAddress',
+        subTotal: '$orderDetails.subTotal',
+        qoutedPrice: '$orderDetails.qoutedPrice',
+        pickupPrice: '$orderDetails.pickupPrice',
+        totalPrice: '$orderDetails.totalPrice',
+        customerId: '$orderDetails.customerDetails._id',
+        customerProfileImage: '$orderDetails.customerDetails.profileImage',
+        customerName: '$orderDetails.customerDetails.name',
+        customerEmail: '$orderDetails.customerDetails.email',
+        customerPhoneNumber: '$orderDetails.customerDetails.phoneNumber',
+        customerAddress: '$orderDetails.customerDetails.address',
+        employeeId: '$employeeDetails._id',
+      },
+    },
+    {
+      $project: {
+        orderDetails: 0,
+        employeeDetails: 0,
+      },
+    },
+    {
+      $sort: {
+        assignedAt: 1,
+      },
+    },
+    {
+      $limit: 1,
+    }
+  )
+
+  // ** Retrived all the order of the employee:
+  const allAssignment = await AssignedEmployee.aggregate(pipeline)
+
+  if (!allAssignment[0]) {
+    throw new AppError(httpStatus.NOT_FOUND, 'No ongoing assignment found.')
+  }
+
+  return allAssignment[0]
+}
+
+const getPendingAssignment = async (user: IUser) => {
+  const pipeline: PipelineStage[] = []
+
+  pipeline.push(
+    {
+      $match: {
+        employee: user?._id,
+        status: employeeAssignStatus.PENDING,
+      },
+    },
+    {
+      $lookup: {
+        localField: 'order',
+        foreignField: '_id',
+        from: 'orders',
+        as: 'orderDetails',
+        pipeline: [
+          {
+            $lookup: {
+              localField: 'customer',
+              foreignField: '_id',
+              from: 'users',
+              as: 'customerDetails',
+              pipeline: [
+                {
+                  $project: {
+                    _id: 1,
+                    name: 1,
+                    email: 1,
+                    phoneNumber: 1,
+                    address: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $unwind: {
+              path: '$customerDetails',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind: {
+        path: '$employeeDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $unwind: {
+        path: '$orderDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $addFields: {
+        orderId: '$_id',
+        orderNumber: '$orderDetails.orderNumber',
+        orderType: '$orderDetails.orderType',
+        deliveryType: '$orderDetails.deliveryType',
+        status: '$status',
+        orderStatus: '$orderDetails.status',
+        orderPlacedAt: '$orderDetails.orderRequestedAt',
+        preferredDate: '$orderDetails.prefferredDate',
+        pickupAddress: '$orderDetails.pickupAddress',
+        subTotal: '$orderDetails.subTotal',
+        qoutedPrice: '$orderDetails.qoutedPrice',
+        pickupPrice: '$orderDetails.pickupPrice',
+        totalPrice: '$orderDetails.totalPrice',
+        customerId: '$orderDetails.customerDetails._id',
+        customerProfileImage: '$orderDetails.customerDetails.profileImage',
+        customerName: '$orderDetails.customerDetails.name',
+        customerEmail: '$orderDetails.customerDetails.email',
+        customerPhoneNumber: '$orderDetails.customerDetails.phoneNumber',
+        customerAddress: '$orderDetails.customerDetails.address',
+        employeeId: '$employeeDetails._id',
+      },
+    },
+    {
+      $project: {
+        orderDetails: 0,
+        employeeDetails: 0,
+      },
+    },
+    {
+      $sort: {
+        assignedAt: 1,
+      },
+    },
+    {
+      $limit: 1,
+    }
+  )
+
+  // ** Retrived all the order of the employee:
+  const allAssignment = await AssignedEmployee.aggregate(pipeline)
+
+  if (!allAssignment[0]) {
+    throw new AppError(httpStatus.NOT_FOUND, 'No pending assignment found.')
+  }
+
+  return allAssignment[0]
+}
+
 export const assignedEmployeeServices = {
   createAssignedEmployee,
   cancelAssignmentById,
@@ -661,4 +875,6 @@ export const assignedEmployeeServices = {
 
   getAllAssignedEmployee,
   getAssignedEmployeeById,
+  getCurrentOngoingAssignment,
+  getPendingAssignment,
 }

@@ -4,7 +4,6 @@ import {
   AuthRoles,
   DeliveryMethod,
   employeeAssignStatus,
-  GetPickupPoints,
   Metal,
   MetalOrder,
   Order,
@@ -14,8 +13,6 @@ import {
   OrderType,
   Vehicle,
   type IUser,
-  type TAuthStatus,
-  type TOrderStatusType,
 } from '@repo/db'
 import httpStatus from 'http-status'
 import { AppError, formatQuery, ROLE_RANK, type BaseQueryParams } from '@repo/shared'
@@ -42,8 +39,7 @@ const createVehicleOrder = async (
     deliveryType,
     preferredDate,
     additionalNotes,
-    lattitude,
-    longitude,
+
     pickupAddress,
   } = payload
 

@@ -1,5 +1,5 @@
 import z from 'zod'
-import { latitude, longitude, coordinates } from 'check-geographic-coordinates'
+
 import {
   requiredString,
   optionalNumber,
