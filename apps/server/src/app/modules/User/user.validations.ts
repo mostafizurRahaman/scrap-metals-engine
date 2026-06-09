@@ -1,6 +1,5 @@
 import z from 'zod'
 import {
-  requiredString,
   optionalNumber,
   optionalEnumString,
   optionalString,
@@ -22,24 +21,8 @@ const getAllUserSchema = z.object({
   }),
 })
 
-const getUserByIdSchema = z.object({
-  params: z.object({
-    id: requiredString('ID'),
-  }),
-})
-
-const deleteUserByIdSchema = z.object({
-  params: z.object({
-    id: requiredString('ID'),
-  }),
-})
-
 export const userValidations = {
   getAllUserSchema,
-  getUserByIdSchema,
-  deleteUserByIdSchema,
 }
 
 export type TGetAllUserQueryParamsType = z.infer<typeof getAllUserSchema.shape.query>
-export type TGetUserByIdParamsType = z.infer<typeof getUserByIdSchema.shape.params>
-export type TDeleteUserByIdParamsType = z.infer<typeof deleteUserByIdSchema.shape.params>

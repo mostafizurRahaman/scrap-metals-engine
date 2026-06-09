@@ -14,12 +14,4 @@ router.get(
   userControllers.getAllUser
 )
 
-router.get('/:id', validateRequest(userValidations.getUserByIdSchema), userControllers.getUserById)
-
-router.delete(
-  '/:id',
-  validateRequest(userValidations.deleteUserByIdSchema),
-  userControllers.deleteUserById
-)
-
 export const userRoutes = router

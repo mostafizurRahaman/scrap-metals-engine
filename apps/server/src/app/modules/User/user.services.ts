@@ -1,6 +1,5 @@
 import { User, userSearchableFields } from '@repo/db'
-import httpStatus from 'http-status'
-import { AppError, formatQuery, type BaseQueryParams } from '@repo/shared'
+import { formatQuery, type BaseQueryParams } from '@repo/shared'
 import type { PipelineStage } from 'mongoose'
 
 import type { TGetAllUserQueryParamsType } from './user.validations'
@@ -83,28 +82,6 @@ const getAllUser = async (query: TGetAllUserQueryParamsType) => {
   }
 }
 
-const getUserById = async (id: string) => {
-  const result = await User.findById(id)
-
-  if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, 'User not found')
-  }
-
-  return result
-}
-
-const deleteUserById = async (id: string) => {
-  const result = await User.findOneAndDelete({ _id: id })
-
-  if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, 'User not found')
-  }
-
-  return result
-}
-
 export const userServices = {
   getAllUser,
-  getUserById,
-  deleteUserById,
 }
