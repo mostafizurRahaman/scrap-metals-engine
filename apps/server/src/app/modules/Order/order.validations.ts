@@ -1,5 +1,5 @@
 import z from 'zod'
-import { latitude, longitude, coordinates } from 'check-geographic-coordinates'
+
 import {
   requiredString,
   optionalNumber,
@@ -52,49 +52,49 @@ const createVihecleOrderSchema = z
         })
         return
       }
-      if (!data.body.lattitude) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['body', 'lattitude'],
-          message: 'Lattitude is required.',
-        })
-        return
-      }
-      if (!data.body.longitude) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['body', 'longitude'],
-          message: 'Longitude is required.',
-        })
-        return
-      }
+      // if (!data.body.lattitude) {
+      //   ctx.addIssue({
+      //     code: 'custom',
+      //     path: ['body', 'lattitude'],
+      //     message: 'Lattitude is required.',
+      //   })
+      //   return
+      // }
+      // if (!data.body.longitude) {
+      //   ctx.addIssue({
+      //     code: 'custom',
+      //     path: ['body', 'longitude'],
+      //     message: 'Longitude is required.',
+      //   })
+      //   return
+      // }
 
-      if (!latitude(data.body.lattitude)) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['body', 'lattitude'],
-          message: 'Provide a valid lattidue.',
-        })
-        return
-      }
+      // if (!latitude(data.body.lattitude)) {
+      //   ctx.addIssue({
+      //     code: 'custom',
+      //     path: ['body', 'lattitude'],
+      //     message: 'Provide a valid lattidue.',
+      //   })
+      //   return
+      // }
 
-      if (!longitude(data.body.longitude)) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['body', 'longitude'],
-          message: 'Provide a valid longitude.',
-        })
-        return
-      }
+      // if (!longitude(data.body.longitude)) {
+      //   ctx.addIssue({
+      //     code: 'custom',
+      //     path: ['body', 'longitude'],
+      //     message: 'Provide a valid longitude.',
+      //   })
+      //   return
+      // }
 
-      if (!coordinates(data.body.longitude, data.body.lattitude)) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['body', 'longitude'],
-          message: 'Provide a valid longitude.',
-        })
-        return
-      }
+      // if (!coordinates(data.body.longitude, data.body.lattitude)) {
+      //   ctx.addIssue({
+      //     code: 'custom',
+      //     path: ['body', 'longitude'],
+      //     message: 'Provide a valid longitude.',
+      //   })
+      //   return
+      // }
     } else {
       data.body.pickupAddress = undefined
       data.body.lattitude = undefined

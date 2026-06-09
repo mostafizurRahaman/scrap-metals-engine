@@ -28,24 +28,26 @@ router.post(
   assignedEmployeeControllers.acceptAssignmentById
 )
 
-
-
 router.get(
   '/all',
+  auth(AuthRoles.STAFF),
   validateRequest(assignedEmployeeValidations.getAllAssignedEmployeeSchema),
   assignedEmployeeControllers.getAllAssignedEmployee
 )
 
 router.get(
-  '/:id',
-  validateRequest(assignedEmployeeValidations.getAssignedEmployeeByIdSchema),
-  assignedEmployeeControllers.getAssignedEmployeeById
+  '/ongoing',
+  auth(AuthRoles.STAFF),
+  assignedEmployeeControllers.getCurrentOngoingAssignment
 )
 
-router.delete(
+// router.get('/pending', auth(AuthRoles.STAFF), assignedEmployeeControllers.getPendingAssignment)
+
+router.get(
   '/:id',
-  validateRequest(assignedEmployeeValidations.deleteAssignedEmployeeByIdSchema),
-  assignedEmployeeControllers.deleteAssignedEmployeeById
+  auth(AuthRoles.STAFF),
+  validateRequest(assignedEmployeeValidations.getAssignedEmployeeByIdSchema),
+  assignedEmployeeControllers.getAssignedEmployeeById
 )
 
 export const assignedEmployeeRoutes = router

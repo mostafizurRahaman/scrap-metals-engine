@@ -1,6 +1,21 @@
-export const assignedEmployeeSearchableFields = ['name'] as const
+export const assignedEmployeeSearchableFields = [
+  'name',
+  'orderNumber',
+  'customerName',
+  'customerEmail',
+  'pickupAddress',
+] as const
 
-export const assignedEmployeeSortableFields = ['createdAt', 'updatedAt'] as const
+export const assignedEmployeeSortableFields = [
+  'assignedAt',
+  'acceptedAt',
+  'cancelledAt',
+  'completedAt',
+  'orderNumber',
+  'customerName',
+  'customerEmail',
+  'pickupAddress',
+] as const
 
 export const employeeAssignStatus = {
   PENDING: 'pending',

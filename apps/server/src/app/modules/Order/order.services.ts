@@ -4,7 +4,6 @@ import {
   AuthRoles,
   DeliveryMethod,
   employeeAssignStatus,
-  GetPickupPoints,
   Metal,
   MetalOrder,
   Order,
@@ -14,8 +13,6 @@ import {
   OrderType,
   Vehicle,
   type IUser,
-  type TAuthStatus,
-  type TOrderStatusType,
 } from '@repo/db'
 import httpStatus from 'http-status'
 import { AppError, formatQuery, ROLE_RANK, type BaseQueryParams } from '@repo/shared'
@@ -42,8 +39,7 @@ const createVehicleOrder = async (
     deliveryType,
     preferredDate,
     additionalNotes,
-    lattitude,
-    longitude,
+
     pickupAddress,
   } = payload
 
@@ -76,13 +72,13 @@ const createVehicleOrder = async (
       throw new AppError(httpStatus.BAD_REQUEST, 'Pickup Address is required!')
     }
 
-    if (!lattitude) {
-      throw new AppError(httpStatus.BAD_REQUEST, 'Lattitude is required!')
-    }
+    // if (!lattitude) {
+    //   throw new AppError(httpStatus.BAD_REQUEST, 'Lattitude is required!')
+    // }
 
-    if (!longitude) {
-      throw new AppError(httpStatus.BAD_REQUEST, 'Longitude is required!')
-    }
+    // if (!longitude) {
+    //   throw new AppError(httpStatus.BAD_REQUEST, 'Longitude is required!')
+    // }
   }
 
   const attachments: string[] = []
@@ -120,10 +116,10 @@ const createVehicleOrder = async (
   // ? If the Delivery type is pickup:
   if (deliveryType === DeliveryMethod.PICKUP) {
     newOrderPayload.pickupAddress = pickupAddress
-    newOrderPayload.pickupPoint = {
-      type: GetPickupPoints.Point,
-      coordinates: [longitude, lattitude],
-    }
+    // newOrderPayload.pickupPoint = {
+    //   type: GetPickupPoints.Point,
+    //   coordinates: [longitude, lattitude],
+    // }
   }
   const session = await mongoose.startSession()
 

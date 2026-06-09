@@ -170,24 +170,12 @@ const getOrderById = catchAsync(async (req, res) => {
   })
 })
 
-const deleteOrderById = catchAsync(async (req, res) => {
-  const result = await orderServices.deleteOrderById(req.params.id as string)
-
-  sendResponse(res, {
-    success: true,
-    statusCode: httpStatus.OK,
-    message: 'The order deleted successfully!',
-    data: result,
-  })
-})
-
 export const orderControllers = {
   createVehicleOrder,
   createMetalOrder,
   getCustomerAllOrder,
   getAdminAllOrder,
   getOrderById,
-  deleteOrderById,
 
   // Qoute request:
   sendVehicleQoute,
