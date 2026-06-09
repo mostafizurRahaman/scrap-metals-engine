@@ -8,7 +8,7 @@ import {
   sortingOrderValues,
   requiredMongooseId,
 } from '@repo/shared'
-import { assignedEmployeeSortableFields } from '@repo/db'
+import { assignedEmployeeSortableFields, employeeAssignStatusValues } from '@repo/db'
 
 const createAssignedEmployeeSchema = z.object({
   body: z.object({
@@ -39,6 +39,7 @@ const getAllAssignedEmployeeSchema = z.object({
     searchTerm: optionalString('Search term'),
     sortOrder: optionalEnumString(sortingOrderValues, 'Sort order'),
     sortBy: optionalEnumString(assignedEmployeeSortableFields, 'Sort by'),
+    status: optionalEnumString(employeeAssignStatusValues, 'Assignment status'),
     fromDate: optionalDate('From date'),
     toDate: optionalDate('To date'),
   }),
@@ -50,18 +51,11 @@ const getAssignedEmployeeByIdSchema = z.object({
   }),
 })
 
-const deleteAssignedEmployeeByIdSchema = z.object({
-  params: z.object({
-    id: requiredString('ID'),
-  }),
-})
-
 export const assignedEmployeeValidations = {
   createAssignedEmployeeSchema,
   cancelAssignedEmployeeById,
   getAllAssignedEmployeeSchema,
   getAssignedEmployeeByIdSchema,
-  deleteAssignedEmployeeByIdSchema,
   acceptAssignmentSchema,
 }
 
@@ -74,9 +68,6 @@ export type TGetAllAssignedEmployeeQueryParamsType = z.infer<
 >
 export type TGetAssignedEmployeeByIdParamsType = z.infer<
   typeof getAssignedEmployeeByIdSchema.shape.params
->
-export type TDeleteAssignedEmployeeByIdParamsType = z.infer<
-  typeof deleteAssignedEmployeeByIdSchema.shape.params
 >
 
 export type TCancelAssignedEmployeeByIdPayload = z.infer<

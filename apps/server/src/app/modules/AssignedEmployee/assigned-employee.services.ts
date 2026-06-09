@@ -14,7 +14,7 @@ import {
   type IUser,
 } from '@repo/db'
 import httpStatus from 'http-status'
-import { AppError } from '@repo/shared'
+import { AppError, formatQuery, type BaseQueryParams } from '@repo/shared'
 import type { PipelineStage } from 'mongoose'
 
 import type {
@@ -22,7 +22,7 @@ import type {
   TGetAllAssignedEmployeeQueryParamsType,
   TCancelAssignedEmployeeByIdPayload,
 } from './assigned-employee.validations'
-import mongoose from 'mongoose'
+import mongoose, { Types } from 'mongoose'
 
 // ?. 1 Assign employee:
 const createAssignedEmployee = async (user: IUser, payload: TCreateAssignedEmployeePayloadType) => {
@@ -71,7 +71,7 @@ const createAssignedEmployee = async (user: IUser, payload: TCreateAssignedEmplo
     },
   })
 
-  if (assignedTask && Array.isArray(assignedTask) && assignedTask.length > 3) {
+  if (assignedTask && Array.isArray(assignedTask) && assignedTask.length > 2) {
     throw new AppError(httpStatus.BAD_REQUEST, `Employee is busy. Assign another employee.`)
   }
 
@@ -295,6 +295,8 @@ const acceptAssignmentById = async (user: IUser, assignedId: string) => {
     throw new AppError(httpStatus.FORBIDDEN, 'This assignment does not belong to you!')
   }
 
+  // 6. Has any ongoing task ??
+
   const session = await mongoose.startSession()
 
   try {
@@ -348,7 +350,13 @@ const acceptAssignmentById = async (user: IUser, assignedId: string) => {
   }
 }
 
-const getAllAssignedEmployee = async (query: TGetAllAssignedEmployeeQueryParamsType) => {
+// ? 4. Get all assignement of current employee:
+const getAllAssignedEmployee = async (
+  user: IUser,
+  query: TGetAllAssignedEmployeeQueryParamsType
+) => {
+  const { status } = query
+
   const {
     page = 1,
     limit = 10,
@@ -357,18 +365,129 @@ const getAllAssignedEmployee = async (query: TGetAllAssignedEmployeeQueryParamsT
     sortBy = 'createdAt',
     fromDate,
     toDate,
-  } = query
+    dateFilter,
+    skip,
+  } = formatQuery(query as BaseQueryParams)
 
-  const skip = (page - 1) * limit
-  const pipeline: PipelineStage[] = []
+  const pipeline: PipelineStage[] = [
+    {
+      $match: {
+        employee: user?._id,
+      },
+    },
+  ]
 
   if (fromDate || toDate) {
-    const dateFilter: Record<string, unknown> = {}
-    if (fromDate) dateFilter.$gte = new Date(fromDate)
-    if (toDate) dateFilter.$lte = new Date(toDate)
-
     pipeline.push({ $match: { createdAt: dateFilter } })
   }
+
+  if (status) {
+    pipeline.push({
+      $match: {
+        status,
+      },
+    })
+  }
+
+  pipeline.push(
+    {
+      $lookup: {
+        localField: 'employee',
+        foreignField: '_id',
+        from: 'users',
+        as: 'employeeDetails',
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              email: 1,
+              phoneNumber: 1,
+              profileImage: 1,
+              address: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        localField: 'order',
+        foreignField: '_id',
+        from: 'orders',
+        as: 'orderDetails',
+        pipeline: [
+          {
+            $lookup: {
+              localField: 'customer',
+              foreignField: '_id',
+              from: 'users',
+              as: 'customerDetails',
+              pipeline: [
+                {
+                  $project: {
+                    _id: 1,
+                    name: 1,
+                    email: 1,
+                    phoneNumber: 1,
+                    address: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $unwind: {
+              path: '$customerDetails',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind: {
+        path: '$employeeDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $unwind: {
+        path: '$orderDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $addFields: {
+        orderId: '$_id',
+        orderNumber: '$orderDetails.orderNumber',
+        orderType: '$orderDetails.orderType',
+        deliveryType: '$orderDetails.deliveryType',
+        status: '$status',
+        orderStatus: '$orderDetails.status',
+        orderPlacedAt: '$orderDetails.orderRequestedAt',
+        preferredDate: '$orderDetails.prefferredDate',
+        pickupAddress: '$orderDetails.pickupAddress',
+        subTotal: '$orderDetails.subTotal',
+        qoutedPrice: '$orderDetails.qoutedPrice',
+        pickupPrice: '$orderDetails.pickupPrice',
+        totalPrice: '$orderDetails.totalPrice',
+        customerId: '$orderDetails.customerDetails._id',
+        customerProfileImage: '$orderDetails.customerDetails.profileImage',
+        customerName: '$orderDetails.customerDetails.name',
+        customerEmail: '$orderDetails.customerDetails.email',
+        customerPhoneNumber: '$orderDetails.customerDetails.phoneNumber',
+        customerAddress: '$orderDetails.customerDetails.address',
+        employeeId: '$employeeDetails._id',
+      },
+    },
+    {
+      $project: {
+        orderDetails: 0,
+        employeeDetails: 0,
+      },
+    }
+  )
 
   if (searchTerm) {
     pipeline.push({
@@ -405,24 +524,132 @@ const getAllAssignedEmployee = async (query: TGetAllAssignedEmployeeQueryParamsT
   }
 }
 
-const getAssignedEmployeeById = async (id: string) => {
+const getAssignedEmployeeById = async (user: IUser, id: string) => {
   const result = await AssignedEmployee.findById(id)
 
   if (!result) {
     throw new AppError(httpStatus.NOT_FOUND, 'AssignedEmployee not found')
   }
 
-  return result
-}
-
-const deleteAssignedEmployeeById = async (id: string) => {
-  const result = await AssignedEmployee.findOneAndDelete({ _id: id })
-
-  if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, 'AssignedEmployee not found')
+  if (user?._id?.toString() !== result?.employee?.toString()) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'This assign is not belong to you.')
   }
+  const pipeline: PipelineStage[] = [
+    {
+      $match: {
+        _id: new Types.ObjectId(id),
+      },
+    },
+  ]
 
-  return result
+  pipeline.push(
+    {
+      $lookup: {
+        localField: 'employee',
+        foreignField: '_id',
+        from: 'users',
+        as: 'employeeDetails',
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              email: 1,
+              phoneNumber: 1,
+              profileImage: 1,
+              address: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        localField: 'order',
+        foreignField: '_id',
+        from: 'orders',
+        as: 'orderDetails',
+        pipeline: [
+          {
+            $lookup: {
+              localField: 'customer',
+              foreignField: '_id',
+              from: 'users',
+              as: 'customerDetails',
+              pipeline: [
+                {
+                  $project: {
+                    _id: 1,
+                    name: 1,
+                    email: 1,
+                    phoneNumber: 1,
+                    address: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $unwind: {
+              path: '$customerDetails',
+              preserveNullAndEmptyArrays: true,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind: {
+        path: '$employeeDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $unwind: {
+        path: '$orderDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $addFields: {
+        orderId: '$_id',
+        orderNumber: '$orderDetails.orderNumber',
+        orderType: '$orderDetails.orderType',
+        deliveryType: '$orderDetails.deliveryType',
+        status: '$status',
+        orderStatus: '$orderDetails.status',
+        orderPlacedAt: '$orderDetails.orderRequestedAt',
+        preferredDate: '$orderDetails.prefferredDate',
+        pickupAddress: '$orderDetails.pickupAddress',
+        vinNumber: 'orderDetails.vinNumber',
+        model: '$orderDetails.model',
+        year: '$orderDetails.year',
+        items: '$orderDetails.items',
+        specs: '$orderDetails.spcs',
+        subTotal: '$orderDetails.subTotal',
+        qoutedPrice: '$orderDetails.qoutedPrice',
+        pickupPrice: '$orderDetails.pickupPrice',
+        totalPrice: '$orderDetails.totalPrice',
+        customerId: '$orderDetails.customerDetails._id',
+        customerProfileImage: '$orderDetails.customerDetails.profileImage',
+        customerName: '$orderDetails.customerDetails.name',
+        customerEmail: '$orderDetails.customerDetails.email',
+        customerPhoneNumber: '$orderDetails.customerDetails.phoneNumber',
+        customerAddress: '$orderDetails.customerDetails.address',
+        employeeId: '$employeeDetails._id',
+      },
+    },
+    {
+      $project: {
+        employeeDetails: 0,
+        orderDetails: 0,
+      },
+    }
+  )
+
+  const assignment = await AssignedEmployee.aggregate(pipeline)
+
+  return assignment[0]
 }
 
 export const assignedEmployeeServices = {
@@ -434,5 +661,4 @@ export const assignedEmployeeServices = {
 
   getAllAssignedEmployee,
   getAssignedEmployeeById,
-  deleteAssignedEmployeeById,
 }

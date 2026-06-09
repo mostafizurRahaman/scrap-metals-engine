@@ -28,24 +28,18 @@ router.post(
   assignedEmployeeControllers.acceptAssignmentById
 )
 
-
-
 router.get(
   '/all',
+  auth(AuthRoles.STAFF),
   validateRequest(assignedEmployeeValidations.getAllAssignedEmployeeSchema),
   assignedEmployeeControllers.getAllAssignedEmployee
 )
 
 router.get(
   '/:id',
+  auth(AuthRoles.STAFF),
   validateRequest(assignedEmployeeValidations.getAssignedEmployeeByIdSchema),
   assignedEmployeeControllers.getAssignedEmployeeById
-)
-
-router.delete(
-  '/:id',
-  validateRequest(assignedEmployeeValidations.deleteAssignedEmployeeByIdSchema),
-  assignedEmployeeControllers.deleteAssignedEmployeeById
 )
 
 export const assignedEmployeeRoutes = router
