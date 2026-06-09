@@ -1,6 +1,6 @@
-import { AuthStatus, User, type IUser } from '@repo/db'
+import { AuthStatus, employeeAssignStatus, User, userSearchableFields, type IUser } from '@repo/db'
 import httpStatus from 'http-status'
-import { AppError, hashPassword } from '@repo/shared'
+import { AppError, formatQuery, hashPassword, type BaseQueryParams } from '@repo/shared'
 import type { PipelineStage } from 'mongoose'
 
 import type {
@@ -128,6 +128,7 @@ const updateEmployee = async (id: string, payload: TUpdateEmployeePayloadType) =
 }
 
 const getAllEmployee = async (query: TGetAllEmployeeQueryParamsType) => {
+  const { workingStatus, status } = query
   const {
     page = 1,
     limit = 10,
@@ -136,25 +137,120 @@ const getAllEmployee = async (query: TGetAllEmployeeQueryParamsType) => {
     sortBy = 'createdAt',
     fromDate,
     toDate,
-  } = query
+    dateFilter,
+    skip,
+  } = formatQuery(query as BaseQueryParams)
 
-  const skip = (page - 1) * limit
   const pipeline: PipelineStage[] = []
 
   if (fromDate || toDate) {
-    const dateFilter: Record<string, unknown> = {}
-    if (fromDate) dateFilter.$gte = new Date(fromDate)
-    if (toDate) dateFilter.$lte = new Date(toDate)
-
     pipeline.push({ $match: { createdAt: dateFilter } })
   }
 
   if (searchTerm) {
     pipeline.push({
       $match: {
-        $or: employeeSearchableFields.map((field) => ({
+        $or: userSearchableFields.map((field) => ({
           [field]: { $regex: searchTerm, $options: 'i' },
         })),
+      },
+    })
+  }
+
+  if (status) {
+    pipeline.push({
+      $match: {
+        status,
+      },
+    })
+  }
+
+  pipeline.push(
+    {
+      $lookup: {
+        from: 'assignedemployees',
+        localField: '_id',
+        foreignField: 'employee',
+        pipeline: [
+          {
+            $facet: {
+              completed: [
+                {
+                  $match: {
+                    status: employeeAssignStatus.COMPLETED,
+                  },
+                },
+              ],
+              ongoing: [
+                {
+                  $match: {
+                    status: employeeAssignStatus.ACCEPTED,
+                  },
+                },
+              ],
+              pending: [
+                {
+                  $match: {
+                    status: employeeAssignStatus.PENDING,
+                  },
+                },
+              ],
+              cancelled: [
+                {
+                  $match: {
+                    status: employeeAssignStatus.CANCELLED,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $project: {
+              completedJob: { $size: '$completed' },
+              ongoingJob: { $size: '$ongoing' },
+              pendingJob: { $size: '$pending' },
+              cancelledJob: { $size: '$cancelled' },
+            },
+          },
+        ],
+        as: 'assingnments',
+      },
+    },
+    {
+      $unwind: {
+        path: '$assingnments',
+        preserveNullAndEmptyArrays: true,
+      },
+    }
+  )
+
+  pipeline.push({
+    $project: {
+      _id: 1,
+      profileImage: '$profileImage',
+      name: '$name',
+      email: '$email',
+      phoneNumber: '$phoneNumber',
+      address: '$address',
+      status: '$status',
+      role: '$role',
+      completedJob: '$assingnments.completedJob',
+      ongoingJob: '$assingnments.ongoingJob',
+      pendingJob: '$assingnments.pendingJob',
+      cancelledJob: '$assingnments.cancelledJob',
+      isBusy: {
+        $gte: [{ $add: ['$assingnments.pendingJob', '$assingnments.ongoingJob'] }, 2],
+      },
+      joinedAt: '$createdAt',
+    },
+  })
+
+  if (workingStatus) {
+    const isBusy = workingStatus === 'busy'
+
+    pipeline.push({
+      $match: {
+        isBusy,
       },
     })
   }
@@ -168,7 +264,7 @@ const getAllEmployee = async (query: TGetAllEmployeeQueryParamsType) => {
     },
   })
 
-  const aggregated = await Employee.aggregate(pipeline)
+  const aggregated = await User.aggregate(pipeline)
 
   const data = aggregated?.[0]?.data || []
   const total = aggregated?.[0]?.meta?.[0]?.total || 0

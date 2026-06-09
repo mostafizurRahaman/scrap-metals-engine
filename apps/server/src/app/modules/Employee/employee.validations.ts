@@ -8,7 +8,7 @@ import {
   sortingOrderValues,
   requiredEmail,
 } from '@repo/shared'
-import { AuthRoles, userSortableFields } from '@repo/db'
+import { AuthRoles, AuthStatusValues, userSortableFields } from '@repo/db'
 
 const createEmployeeSchema = z.object({
   body: z.object({
@@ -37,6 +37,8 @@ const getAllEmployeeSchema = z.object({
     searchTerm: optionalString('Search term'),
     sortOrder: optionalEnumString(sortingOrderValues, 'Sort order'),
     sortBy: optionalEnumString(userSortableFields, 'Sort by'),
+    status: optionalEnumString(AuthStatusValues, 'User Status'),
+    workingStatus: optionalEnumString(['busy', 'available'], 'Working status'),
     fromDate: optionalDate('From date'),
     toDate: optionalDate('To date'),
   }),

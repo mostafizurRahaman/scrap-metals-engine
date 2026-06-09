@@ -73,7 +73,7 @@ const createAssignedEmployee = async (user: IUser, payload: TCreateAssignedEmplo
     },
   })
 
-  if (assignedTask && Array.isArray(assignedTask) && assignedTask.length > 2) {
+  if (assignedTask && Array.isArray(assignedTask) && assignedTask.length >= 2) {
     throw new AppError(httpStatus.BAD_REQUEST, `Employee is busy. Assign another employee.`)
   }
 
