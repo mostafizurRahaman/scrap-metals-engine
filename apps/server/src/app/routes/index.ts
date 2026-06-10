@@ -1,5 +1,6 @@
 import { assignedEmployeeRoutes } from '@app/modules/AssignedEmployee/assigned-employee.routes'
 import { authRoutes } from '@app/modules/Auth/user.routes'
+import { bannerRoutes } from '@app/modules/Banner/banner.routes'
 import { employeeRoutes } from '@app/modules/Employee/employee.routes'
 import { metalRoutes } from '@app/modules/Metal/metal.routes'
 import { orderRoutes } from '@app/modules/Order/order.routes'
@@ -37,6 +38,10 @@ const routes = [
   {
     path: '/employee',
     route: employeeRoutes,
+  },
+  {
+    path: '/banner',
+    route: bannerRoutes,
   },
 ]
 
