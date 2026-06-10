@@ -813,6 +813,78 @@ const ChangeProfilePicture = async (user: IUser, file: Express.Multer.File) => {
   }
 }
 
+const adminLogin = async (payload: ILoginType) => {
+  const { email, password } = payload
+
+  // 1. check user
+  const user = await User.findOne({ email }).select('+password')
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User doesn't exists!")
+  }
+
+  // 2. check user status:
+  if (user.status === AuthStatus.BLOCKED) {
+    throw new AppError(httpStatus.FORBIDDEN, 'You account is blocked. Please contact support!')
+  }
+
+  if (user.status === AuthStatus.DELETED) {
+    throw new AppError(httpStatus.GONE, 'Your account is deleted!')
+  }
+
+  // 3. check is in review or not ? if documents required
+
+  // 4. check is otp verified ?
+  if (!user.isOtpVerified) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Your account is not verified!')
+  }
+
+  // 4.1 : Check is this user admin/ super_admin:
+  if (![AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN].includes(user?.role)) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      `Access Denied: This portal is for Administrators only.`
+    )
+  }
+
+  // 5. compare given password:
+  const isPasswordMatched = await comparePassword(password, user.password)
+
+  if (!isPasswordMatched) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Credential not matched!')
+  }
+
+  // 6. Prepare jwt payload:
+  const jwtPayload: IJwtUserPayload = {
+    _id: user._id?.toString(),
+    email: user?.email,
+    name: user?.name,
+    profileImage: user?.profileImage as string,
+    status: user?.status,
+  }
+
+  // 7. Generate access token :
+  const accessToken = createToken(
+    jwtPayload,
+    configs.jwt.accessToken.secret,
+    configs.jwt.accessToken.expiresIn
+  )
+
+  // 8. Generate refresh token
+  const refreshToken = createToken(
+    jwtPayload,
+    configs.jwt.refreshToken.secret,
+    configs.jwt.refreshToken.expiresIn
+  )
+
+  return {
+    refreshToken,
+    accessToken,
+    email: user.email,
+    isTwofactorEnabled: user.isTwoFactorEnabled,
+    role: user?.role,
+  }
+}
+
 export const AuthServices = {
   signUp,
   resendSignupOTP,
@@ -826,5 +898,6 @@ export const AuthServices = {
   getMe,
   updateProfile,
   updateUserStatusById,
+  adminLogin,
   ChangeProfilePicture,
 }

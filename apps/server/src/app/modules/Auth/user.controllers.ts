@@ -183,6 +183,26 @@ const ChangeProfilePicture = catchAsync(async (req, res) => {
     data: result,
   })
 })
+
+// 4. Login user:
+const adminLogin = catchAsync(async (req, res) => {
+  const result = await AuthServices.adminLogin(req.body)
+
+  setCookie(res, 'refreshToken', result.refreshToken, {
+    httpOnly: true,
+    secure: configs.nodeEnv === 'production',
+    maxAge: 365 * 24 * 60 * 60 * 1000, // 365 days
+    sameSite: 'lax',
+    path: '/',
+  })
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: `You have logged in successfully!`,
+    data: result,
+  })
+})
 export const AuthController = {
   signUp,
   resendSignupOTP,
@@ -197,4 +217,5 @@ export const AuthController = {
   updateProfile,
   updateStatusByID,
   ChangeProfilePicture,
+  adminLogin,
 }
