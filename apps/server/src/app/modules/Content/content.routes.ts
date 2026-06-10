@@ -3,7 +3,7 @@ import { validateRequest } from '@app/middlewares'
 import { contentControllers } from './content.controllers'
 import { contentValidations } from './content.validations'
 import { auth } from '@app/middlewares/auth'
-import { AuthRoles } from 'packages/db/src'
+import { AuthRoles } from '@repo/db'
 
 const router: Router = express.Router()
 

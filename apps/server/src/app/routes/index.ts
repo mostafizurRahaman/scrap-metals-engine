@@ -1,3 +1,4 @@
+import { analyticsRoutes } from '@app/modules/Analytics/analytics.routes'
 import { assignedEmployeeRoutes } from '@app/modules/AssignedEmployee/assigned-employee.routes'
 import { authRoutes } from '@app/modules/Auth/user.routes'
 import { bannerRoutes } from '@app/modules/Banner/banner.routes'
@@ -47,6 +48,10 @@ const routes = [
   {
     path: '/content',
     route: contentRoutes,
+  },
+  {
+    path: '/analytics',
+    route: analyticsRoutes,
   },
 ]
 
