@@ -16,6 +16,18 @@ const getDashboardOverview = catchAsync(async (req, res) => {
   })
 })
 
+const getEmployeeOverview = catchAsync(async (req, res) => {
+  const result = await analyticsServices.getEmployeeOverview()
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'The employee analytics retrived successfully!',
+    data: result,
+  })
+})
+
 export const analyticsControllers = {
   getDashboardOverview,
+  getEmployeeOverview,
 }

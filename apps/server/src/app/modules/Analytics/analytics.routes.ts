@@ -14,4 +14,10 @@ router.get(
   analyticsControllers.getDashboardOverview
 )
 
+router.get(
+  '/employee',
+  auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN),
+  analyticsControllers.getEmployeeOverview
+)
+
 export const analyticsRoutes = router

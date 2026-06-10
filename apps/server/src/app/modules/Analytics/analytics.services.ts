@@ -1,8 +1,7 @@
-import { AuthRoles, Metal, Order, User } from '@repo/db'
-
-import type { TGetDashboardOverviewQueryType } from './analytics.validations'
 import moment from 'moment'
-import { logger } from '@app/libs/logger'
+import { AuthRoles, employeeAssignStatus, Metal, Order, User } from '@repo/db'
+import type { TGetDashboardOverviewQueryType } from './analytics.validations'
+import type { PipelineStage } from 'mongoose'
 
 /**
  * Calculates the start and end dates for a given year using Moment.js
@@ -23,8 +22,6 @@ export const getYearDateRange = (year: number | string) => {
     endDateISO: endOfYear.toISOString(),
   }
 }
-
-import moment from 'moment'
 
 const getDashboardOverview = async (query: TGetDashboardOverviewQueryType) => {
   const { customerGrowthYear, purchaseGrowthYear } = query
@@ -151,6 +148,74 @@ const getDashboardOverview = async (query: TGetDashboardOverviewQueryType) => {
   }
 }
 
+const getEmployeeOverview = async () => {
+  const pipeline: PipelineStage[] = [
+    {
+      $match: {
+        role: AuthRoles.STAFF,
+      },
+    },
+  ]
+
+  pipeline.push(
+    {
+      $lookup: {
+        from: 'assignedemployees',
+        localField: '_id',
+        foreignField: 'employee',
+        pipeline: [
+          {
+            $match: {
+              status: { $in: [employeeAssignStatus.ACCEPTED, employeeAssignStatus.PENDING] },
+            },
+          },
+        ],
+        as: 'assingnments',
+      },
+    },
+    {
+      $addFields: {
+        isBusy: {
+          $gte: [{ $size: '$assingnments' }, 2],
+        },
+      },
+    },
+    {
+      $project: {
+        assingnments: 0,
+      },
+    }
+  )
+
+  // pipeline.push({
+  //   $facet: {
+  //     employee: [
+  //       {
+  //         $group: {
+  //           _id: null,
+  //           count: {
+  //             $sum: 1,
+  //           },
+  //         },
+  //       },
+  //     ],
+  //   },
+  // })
+
+  // 2. Execute Aggregations Parallelly
+  const employee = User.aggregate(pipeline)
+
+  return employee
+}
+
 export const analyticsServices = {
   getDashboardOverview,
+  getEmployeeOverview,
 }
+
+/* 
+Hi Rey, 
+I am 
+
+
+*/
