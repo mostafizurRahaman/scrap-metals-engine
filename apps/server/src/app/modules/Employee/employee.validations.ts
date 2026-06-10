@@ -23,13 +23,6 @@ const createEmployeeSchema = z.object({
   }),
 })
 
-const updateEmployeeSchema = z.object({
-  params: z.object({
-    id: requiredString('ID'),
-  }),
-  body: z.object({}),
-})
-
 const getAllEmployeeSchema = z.object({
   query: z.object({
     page: optionalNumber('Page'),
@@ -44,28 +37,11 @@ const getAllEmployeeSchema = z.object({
   }),
 })
 
-const getEmployeeByIdSchema = z.object({
-  params: z.object({
-    id: requiredString('ID'),
-  }),
-})
-
-const deleteEmployeeByIdSchema = z.object({
-  params: z.object({
-    id: requiredString('ID'),
-  }),
-})
-
 export const employeeValidations = {
   createEmployeeSchema,
-  updateEmployeeSchema,
+
   getAllEmployeeSchema,
-  getEmployeeByIdSchema,
-  deleteEmployeeByIdSchema,
 }
 
 export type TCreateEmployeePayloadType = z.infer<typeof createEmployeeSchema.shape.body>
-export type TUpdateEmployeePayloadType = z.infer<typeof updateEmployeeSchema.shape.body>
 export type TGetAllEmployeeQueryParamsType = z.infer<typeof getAllEmployeeSchema.shape.query>
-export type TGetEmployeeByIdParamsType = z.infer<typeof getEmployeeByIdSchema.shape.params>
-export type TDeleteEmployeeByIdParamsType = z.infer<typeof deleteEmployeeByIdSchema.shape.params>
