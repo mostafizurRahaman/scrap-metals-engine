@@ -12,9 +12,6 @@ import { logger } from '@app/libs/logger'
 
 const app: express.Application = express()
 
-
-
-
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 munite
   max: 500, // limit each IP to 100 requests per windowMs
