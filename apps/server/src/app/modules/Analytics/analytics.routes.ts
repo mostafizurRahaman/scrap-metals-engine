@@ -19,5 +19,10 @@ router.get(
   auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN),
   analyticsControllers.getEmployeeOverview
 )
+router.get(
+  '/order',
+  auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN),
+  analyticsControllers.getOrderOverview
+)
 
 export const analyticsRoutes = router

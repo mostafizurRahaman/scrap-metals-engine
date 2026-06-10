@@ -1,5 +1,5 @@
 import moment from 'moment'
-import { AuthRoles, employeeAssignStatus, Metal, Order, User } from '@repo/db'
+import { AuthRoles, employeeAssignStatus, Metal, Order, OrderStatus, User } from '@repo/db'
 import type { TGetDashboardOverviewQueryType } from './analytics.validations'
 import type { PipelineStage } from 'mongoose'
 
@@ -151,13 +151,8 @@ const getDashboardOverview = async (query: TGetDashboardOverviewQueryType) => {
 const getEmployeeOverview = async () => {
   const pipeline: PipelineStage[] = [
     {
-      $match: {
-        role: AuthRoles.STAFF,
-      },
+      $match: { role: AuthRoles.STAFF },
     },
-  ]
-
-  pipeline.push(
     {
       $lookup: {
         from: 'assignedemployees',
@@ -170,52 +165,131 @@ const getEmployeeOverview = async () => {
             },
           },
         ],
-        as: 'assingnments',
+        as: 'assignments',
       },
     },
     {
       $addFields: {
-        isBusy: {
-          $gte: [{ $size: '$assingnments' }, 2],
-        },
+        // Logic: Busy if they have 2 or more active assignments
+        isBusy: { $gte: [{ $size: '$assignments' }, 2] },
       },
     },
     {
-      $project: {
-        assingnments: 0,
+      $facet: {
+        stats: [
+          {
+            $group: {
+              _id: null,
+              totalEmployee: { $sum: 1 },
+              onDuty: {
+                $sum: { $cond: ['$isBusy', 1, 0] },
+              },
+              available: {
+                $sum: { $cond: ['$isBusy', 0, 1] },
+              },
+            },
+          },
+        ],
       },
+    },
+    {
+      // Flatten the result so you don't get an array inside an object
+      $project: {
+        overview: { $arrayElemAt: ['$stats', 0] },
+      },
+    },
+  ]
+
+  const result = await User.aggregate(pipeline)
+
+  // Return a clean object or default values if no employees exist
+  return result[0]?.overview || { totalEmployee: 0, onDuty: 0, available: 0 }
+}
+
+const getOrderOverview = async () => {
+  const pipeline: PipelineStage[] = []
+
+  pipeline.push({
+    $group: {
+      _id: null,
+      totalOrder: { $sum: 1 },
+      pending: {
+        $sum: {
+          $cond: [{ $eq: ['$status', OrderStatus.PENDING] }, 1, 0],
+        },
+      },
+      qouted: {
+        $sum: {
+          $cond: [{ $eq: ['$status', OrderStatus.QOUTED] }, 1, 0],
+        },
+      },
+      accepted: {
+        $sum: {
+          $cond: [{ $eq: ['$status', OrderStatus.ACCEPTED] }, 1, 0],
+        },
+      },
+      assigned: {
+        $sum: {
+          $cond: [{ $eq: ['$status', OrderStatus.ASSIGNED] }, 1, 0],
+        },
+      },
+      on_the_way: {
+        $sum: {
+          $cond: [{ $eq: ['$status', OrderStatus.ON_THE_WAY] }, 1, 0],
+        },
+      },
+      received: {
+        $sum: {
+          $cond: [{ $eq: ['$status', OrderStatus.RECEIVED] }, 1, 0],
+        },
+      },
+      completed: {
+        $sum: {
+          $cond: [{ $eq: ['$status', OrderStatus.COMPLETED] }, 1, 0],
+        },
+      },
+      cancelled: {
+        $sum: {
+          $cond: [{ $eq: ['$status', OrderStatus.CANCELLED] }, 1, 0],
+        },
+      },
+      // inProgress: {
+      //   $sum: {
+      //     $cond: [
+      //       {
+      //         $in: [
+      //           '$status',
+      //           [OrderStatus.ASSIGNED, OrderStatus.RECEIVED, OrderStatus.ON_THE_WAY],
+      //         ],
+      //       },
+      //       1,
+      //       0,
+      //     ],
+      //   },
+      // },
+    },
+  })
+
+  const order = await Order.aggregate(pipeline)
+
+  return (
+    order?.[0] || {
+      _id: null,
+      totalOrder: 0,
+      pending: 0,
+      qouted: 0,
+      accepted: 0,
+      assigned: 0,
+      on_the_way: 0,
+      received: 0,
+      completed: 0,
+      cancelled: 0,
     }
   )
-
-  // pipeline.push({
-  //   $facet: {
-  //     employee: [
-  //       {
-  //         $group: {
-  //           _id: null,
-  //           count: {
-  //             $sum: 1,
-  //           },
-  //         },
-  //       },
-  //     ],
-  //   },
-  // })
-
-  // 2. Execute Aggregations Parallelly
-  const employee = User.aggregate(pipeline)
-
-  return employee
 }
 
 export const analyticsServices = {
   getDashboardOverview,
   getEmployeeOverview,
+  getOrderOverview,
 }
-
-/* 
-Hi Rey, 
-I am 
-
-
-*/
