@@ -5,7 +5,6 @@ import type { PipelineStage } from 'mongoose'
 
 import type {
   TCreateEmployeePayloadType,
-  TUpdateEmployeePayloadType,
   TGetAllEmployeeQueryParamsType,
 } from './employee.validations'
 import mongoose from 'mongoose'
@@ -115,16 +114,6 @@ const createEmployee = async (payload: TCreateEmployeePayloadType) => {
     console.log(error)
     throw new Error(error)
   }
-}
-
-const updateEmployee = async (id: string, payload: TUpdateEmployeePayloadType) => {
-  const result = await Employee.findOneAndUpdate({ _id: id }, { $set: payload }, { new: true })
-
-  if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Employee not found')
-  }
-
-  return result
 }
 
 const getAllEmployee = async (query: TGetAllEmployeeQueryParamsType) => {
@@ -280,30 +269,7 @@ const getAllEmployee = async (query: TGetAllEmployeeQueryParamsType) => {
   }
 }
 
-const getEmployeeById = async (id: string) => {
-  const result = await Employee.findById(id)
-
-  if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Employee not found')
-  }
-
-  return result
-}
-
-const deleteEmployeeById = async (id: string) => {
-  const result = await Employee.findOneAndDelete({ _id: id })
-
-  if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Employee not found')
-  }
-
-  return result
-}
-
 export const employeeServices = {
   createEmployee,
-  updateEmployee,
   getAllEmployee,
-  getEmployeeById,
-  deleteEmployeeById,
 }

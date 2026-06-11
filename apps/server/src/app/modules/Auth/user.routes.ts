@@ -36,6 +36,9 @@ router.post(
 // 4. Login :
 router.post('/login', validateRequest(AuthValidations.loginSchema), AuthController.login)
 
+// 4.1 Admin login:
+router.post('/admin-login', validateRequest(AuthValidations.loginSchema), AuthController.adminLogin)
+
 // 5. Forgot passwod:
 router.post(
   '/forgot-password',
