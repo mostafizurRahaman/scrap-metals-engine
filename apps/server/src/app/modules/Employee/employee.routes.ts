@@ -16,6 +16,7 @@ router.post(
 
 router.get(
   '/all',
+  auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN),
   validateRequest(employeeValidations.getAllEmployeeSchema),
   employeeControllers.getAllEmployee
 )

@@ -4,10 +4,13 @@ import {
   assignedEmployeeSearchableFields,
   AuthRoles,
   AuthStatus,
+  Conversation,
+  ConversationUser,
   DeliveryMethod,
   employeeAssignStatus,
   employeeAssignStatusValues,
   Order,
+  OrderChat,
   OrderHistory,
   OrderStatus,
   User,
@@ -134,6 +137,19 @@ const createAssignedEmployee = async (user: IUser, payload: TCreateAssignedEmplo
       ],
       { session }
     )
+
+    // // ? Check is there any conversation for this order?:
+    // const conv = await OrderChat.findOne({
+    //   order: order?._id,
+    // })
+
+    // if (conv) {
+    //   const users = await ConversationUser?.find({
+    //     conversation: conv?._id,
+    //     status: Co
+    //   })
+    // }
+
     await session.commitTransaction()
 
     return assignedEmployee
