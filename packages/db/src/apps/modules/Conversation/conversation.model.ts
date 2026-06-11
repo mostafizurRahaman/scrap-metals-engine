@@ -1,4 +1,4 @@
-import {  Schema, Types, model } from 'mongoose'
+import { Schema, Types, model } from 'mongoose'
 import type { IConversationDoc, IOrderChat, ISupportChat } from './conversation.interfaces'
 import { conversationTypeValues, orderChatStatusValues } from './conversation.constants'
 
@@ -12,7 +12,8 @@ const conversationSchema = new Schema<IConversationDoc>(
   },
   {
     timestamps: true,
-    versionKey: false,
+    versionKey
+    : false,
     discriminatorKey: 'type',
   }
 )
