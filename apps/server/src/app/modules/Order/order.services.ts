@@ -2,11 +2,14 @@
 import {
   AssignedEmployee,
   AuthRoles,
+  Conversation,
+  ConversationUser,
   DeliveryMethod,
   employeeAssignStatus,
   Metal,
   MetalOrder,
   Order,
+  OrderChatStatus,
   OrderHistory,
   orderSearchableFields,
   OrderStatus,
@@ -1003,6 +1006,38 @@ const completePickupOrder = async (user: IUser, orderId: string) => {
       ],
       { session }
     )
+
+    // Close conversation for this order:
+    const conversation = await Conversation.findOneAndUpdate(
+      {
+        order: order?._id,
+      },
+      {
+        $set: {
+          status: OrderChatStatus.closed,
+        },
+      },
+      {
+        new: true,
+        session,
+      }
+    )
+
+    if (conversation) {
+      await ConversationUser.updateMany(
+        {
+          conversation: conversation?._id,
+        },
+        {
+          $set: {
+            leftAt: new Date(),
+          },
+        },
+        {
+          session,
+        }
+      )
+    }
 
     await session.commitTransaction()
     return updatedOrder

@@ -4,7 +4,6 @@ import {
   assignedEmployeeSearchableFields,
   AuthRoles,
   AuthStatus,
-  Conversation,
   ConversationUser,
   DeliveryMethod,
   employeeAssignStatus,

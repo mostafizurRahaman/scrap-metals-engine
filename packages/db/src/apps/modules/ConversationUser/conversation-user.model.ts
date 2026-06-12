@@ -25,7 +25,6 @@ const conversationUserSchema = new Schema<IConversationUserDoc>(
     },
     leftAt: {
       type: Date,
-      required: true,
     },
     lastReadAt: {
       type: Date,
