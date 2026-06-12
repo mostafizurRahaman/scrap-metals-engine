@@ -1008,7 +1008,7 @@ const completePickupOrder = async (user: IUser, orderId: string) => {
     )
 
     // Close conversation for this order:
-    const conversation = await Conversation.findOneAndUpdate(
+    await Conversation.findOneAndUpdate(
       {
         order: order?._id,
       },
@@ -1022,22 +1022,6 @@ const completePickupOrder = async (user: IUser, orderId: string) => {
         session,
       }
     )
-
-    if (conversation) {
-      await ConversationUser.updateMany(
-        {
-          conversation: conversation?._id,
-        },
-        {
-          $set: {
-            leftAt: new Date(),
-          },
-        },
-        {
-          session,
-        }
-      )
-    }
 
     await session.commitTransaction()
     return updatedOrder
