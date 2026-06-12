@@ -3,7 +3,6 @@ import {
   AssignedEmployee,
   AuthRoles,
   Conversation,
-  ConversationUser,
   DeliveryMethod,
   employeeAssignStatus,
   Metal,
