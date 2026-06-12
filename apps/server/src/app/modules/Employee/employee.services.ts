@@ -1,4 +1,11 @@
-import { AuthStatus, employeeAssignStatus, User, userSearchableFields, type IUser } from '@repo/db'
+import {
+  AuthRoles,
+  AuthStatus,
+  employeeAssignStatus,
+  User,
+  userSearchableFields,
+  type IUser,
+} from '@repo/db'
 import httpStatus from 'http-status'
 import { AppError, formatQuery, hashPassword, type BaseQueryParams } from '@repo/shared'
 import type { PipelineStage } from 'mongoose'
@@ -130,7 +137,13 @@ const getAllEmployee = async (query: TGetAllEmployeeQueryParamsType) => {
     skip,
   } = formatQuery(query as BaseQueryParams)
 
-  const pipeline: PipelineStage[] = []
+  const pipeline: PipelineStage[] = [
+    {
+      $match: {
+        role: AuthRoles.STAFF,
+      },
+    },
+  ]
 
   if (fromDate || toDate) {
     pipeline.push({ $match: { createdAt: dateFilter } })

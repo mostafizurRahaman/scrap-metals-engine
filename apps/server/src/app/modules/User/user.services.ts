@@ -1,10 +1,10 @@
-import { User, userSearchableFields } from '@repo/db'
+import { User, userSearchableFields, type IUser } from '@repo/db'
 import { formatQuery, type BaseQueryParams } from '@repo/shared'
 import type { PipelineStage } from 'mongoose'
 
 import type { TGetAllUserQueryParamsType } from './user.validations'
 
-const getAllUser = async (query: TGetAllUserQueryParamsType) => {
+const getAllUser = async (user: IUser, query: TGetAllUserQueryParamsType) => {
   const { status } = query
 
   const {
@@ -19,7 +19,15 @@ const getAllUser = async (query: TGetAllUserQueryParamsType) => {
     dateFilter,
   } = formatQuery(query as BaseQueryParams)
 
-  const pipeline: PipelineStage[] = []
+  const pipeline: PipelineStage[] = [
+    {
+      $match: {
+        _id: {
+          $ne: user?._id,
+        },
+      },
+    },
+  ]
 
   if (fromDate || toDate) {
     pipeline.push({ $match: { createdAt: dateFilter } })

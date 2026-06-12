@@ -2,11 +2,13 @@
 import {
   AssignedEmployee,
   AuthRoles,
+  Conversation,
   DeliveryMethod,
   employeeAssignStatus,
   Metal,
   MetalOrder,
   Order,
+  OrderChatStatus,
   OrderHistory,
   orderSearchableFields,
   OrderStatus,
@@ -1002,6 +1004,22 @@ const completePickupOrder = async (user: IUser, orderId: string) => {
         },
       ],
       { session }
+    )
+
+    // Close conversation for this order:
+    await Conversation.findOneAndUpdate(
+      {
+        order: order?._id,
+      },
+      {
+        $set: {
+          status: OrderChatStatus.closed,
+        },
+      },
+      {
+        new: true,
+        session,
+      }
     )
 
     await session.commitTransaction()

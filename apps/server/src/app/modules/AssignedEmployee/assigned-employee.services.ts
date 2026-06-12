@@ -4,10 +4,13 @@ import {
   assignedEmployeeSearchableFields,
   AuthRoles,
   AuthStatus,
+  ConversationUser,
   DeliveryMethod,
   employeeAssignStatus,
   employeeAssignStatusValues,
   Order,
+  OrderChat,
+  OrderChatStatus,
   OrderHistory,
   OrderStatus,
   User,
@@ -134,6 +137,7 @@ const createAssignedEmployee = async (user: IUser, payload: TCreateAssignedEmplo
       ],
       { session }
     )
+
     await session.commitTransaction()
 
     return assignedEmployee
@@ -297,8 +301,6 @@ const acceptAssignmentById = async (user: IUser, assignedId: string) => {
     throw new AppError(httpStatus.FORBIDDEN, 'This assignment does not belong to you!')
   }
 
-  // 6. Has any ongoing task ??
-
   const session = await mongoose.startSession()
 
   try {
@@ -306,19 +308,14 @@ const acceptAssignmentById = async (user: IUser, assignedId: string) => {
 
     // 6. Update the assignment to 'accepted' and record the timestamp
     const acceptedAssignment = await AssignedEmployee.findOneAndUpdate(
-      {
-        _id: assignment?._id,
-      },
+      { _id: assignment?._id },
       {
         $set: {
           status: employeeAssignStatus.ACCEPTED,
           acceptedAt: new Date(),
         },
       },
-      {
-        new: true,
-        session,
-      }
+      { new: true, session }
     )
 
     if (!acceptedAssignment) {
@@ -331,7 +328,7 @@ const acceptAssignmentById = async (user: IUser, assignedId: string) => {
         {
           order: order?._id,
           status: OrderStatus.ASSIGNED,
-          previousStatus: OrderStatus.ASSIGNED, // State didn't change, but action is logged
+          previousStatus: OrderStatus.ASSIGNED,
           changedBy: user?._id,
           title: `Assignment Accepted`,
           note: `Employee ${user.name || 'assigned'} has accepted the assignment request.`,
@@ -339,6 +336,79 @@ const acceptAssignmentById = async (user: IUser, assignedId: string) => {
       ],
       { session }
     )
+
+    // 8. Check if there is an active chat for this order
+    const openedChat = await OrderChat.findOneAndUpdate(
+      { order: order?._id },
+      {
+        order: order?._id,
+        status: OrderChatStatus.ACTIVE,
+      },
+      { session, upsert: true, new: true }
+    )
+
+    if (!openedChat) {
+      throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, 'Failed to initialize chat room.')
+    }
+
+    // 9. Filter out (active) the customer participant inside chat
+    const customerParticipant = await ConversationUser.findOne({
+      conversation: openedChat?._id,
+      leftAt: null,
+      role: AuthRoles.CUSTOMER,
+    })
+      .select({ user: 1, _id: 0 })
+      .session(session)
+
+    if (
+      customerParticipant &&
+      customerParticipant?.user?.toString() !== order?.customer?.toString()
+    ) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Order & conversation customer id mismatched!')
+    }
+
+    if (!customerParticipant) {
+      // Insert customer into chat
+      await ConversationUser.create(
+        [
+          {
+            conversation: openedChat?._id,
+            user: order?.customer,
+            role: AuthRoles.CUSTOMER,
+            joinedAt: new Date(),
+            lastReadAt: new Date(),
+          },
+        ],
+        { session }
+      )
+    }
+
+    // 10. OPTIMIZATION: Check if staff is already a participant to prevent duplicates/crashes
+    const staffParticipant = await ConversationUser.findOne({
+      conversation: openedChat?._id,
+      user: user?._id,
+      leftAt: null,
+    }).session(session)
+
+    if (!staffParticipant) {
+      // Insert staff into chat if they aren't already there
+      const chatStaffUser = await ConversationUser.create(
+        [
+          {
+            conversation: openedChat?._id,
+            user: user?._id,
+            role: AuthRoles.STAFF,
+            joinedAt: new Date(),
+            lastReadAt: new Date(),
+          },
+        ],
+        { session }
+      )
+
+      if (!chatStaffUser) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create staff user.')
+      }
+    }
 
     await session.commitTransaction()
     return acceptedAssignment
