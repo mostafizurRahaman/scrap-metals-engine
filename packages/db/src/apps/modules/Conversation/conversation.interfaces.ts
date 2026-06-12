@@ -19,3 +19,5 @@ export interface IConversationDoc extends Document, IConversation {}
 // export interface IConversationModel extends Model<IConversationDoc> {
 //   getById(id: string): Promise<IConversation | null>
 // }
+export interface IOrderChatDoc extends IConversationDoc, Omit<IOrderChat, 'type'> {}
+export interface ISupportChatDoc extends IConversationDoc, Omit<ISupportChat, 'type'> {}

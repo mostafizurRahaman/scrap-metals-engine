@@ -9,7 +9,6 @@ export const conversationType = {
 
 export const OrderChatStatus = {
   ACTIVE: 'active',
-  UNASSINGED: 'unassigned',
   closed: 'closed',
 } as const
 

@@ -11,6 +11,7 @@ import {
   employeeAssignStatusValues,
   Order,
   OrderChat,
+  OrderChatStatus,
   OrderHistory,
   OrderStatus,
   User,
@@ -137,18 +138,6 @@ const createAssignedEmployee = async (user: IUser, payload: TCreateAssignedEmplo
       ],
       { session }
     )
-
-    // // ? Check is there any conversation for this order?:
-    // const conv = await OrderChat.findOne({
-    //   order: order?._id,
-    // })
-
-    // if (conv) {
-    //   const users = await ConversationUser?.find({
-    //     conversation: conv?._id,
-    //     status: Co
-    //   })
-    // }
 
     await session.commitTransaction()
 
@@ -355,6 +344,79 @@ const acceptAssignmentById = async (user: IUser, assignedId: string) => {
       ],
       { session }
     )
+
+    // ? Check is any is there any active chat for this order?:
+    const openedChat = await OrderChat.findOneAndUpdate(
+      {
+        order: order?._id,
+      },
+      {
+        order: order?._id,
+        status: OrderChatStatus.ACTIVE,
+      },
+      {
+        session,
+        upsert: true,
+        new: true,
+      }
+    )
+
+    // ? Filter out (active) the participants list into chat:
+    const customerParticipant = await ConversationUser.findOne({
+      conversation: openedChat?._id,
+      leftAt: null,
+      role: AuthRoles.CUSTOMER,
+    })
+      .select({
+        user: 1,
+        _id: 0,
+      })
+      .session(session)
+
+    if (
+      customerParticipant &&
+      customerParticipant?.user?.toString() !== order?.customer?.toString()
+    ) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Order & conversation customer id mismatched!')
+    }
+
+    if (!customerParticipant) {
+      // * Insert customer into chat*
+      await ConversationUser.create(
+        [
+          {
+            conversation: openedChat?._id,
+            user: order?.customer,
+            role: AuthRoles.CUSTOMER,
+            joinedAt: new Date(),
+            lastReadAt: new Date(),
+          },
+        ],
+        {
+          session,
+        }
+      )
+    }
+
+    // ** Insert staff into chat **
+    const chatStaffUser = await ConversationUser.create(
+      [
+        {
+          conversation: openedChat?._id,
+          user: user?._id,
+          role: AuthRoles.STAFF,
+          joinedAt: new Date(),
+          lastReadAt: new Date(),
+        },
+      ],
+      {
+        session,
+      }
+    )
+
+    if (!chatStaffUser) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create staff user.')
+    }
 
     await session.commitTransaction()
     return acceptedAssignment

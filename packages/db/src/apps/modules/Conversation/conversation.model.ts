@@ -1,7 +1,8 @@
-import { Schema, Types, model } from 'mongoose'
-import type { IConversationDoc, IOrderChat, ISupportChat } from './conversation.interfaces'
+import { Schema, model } from 'mongoose'
+import type { IConversationDoc, IOrderChatDoc, ISupportChatDoc } from './conversation.interfaces'
 import { conversationTypeValues, orderChatStatusValues } from './conversation.constants'
 
+// Base Schema remains the same
 const conversationSchema = new Schema<IConversationDoc>(
   {
     type: {
@@ -12,17 +13,16 @@ const conversationSchema = new Schema<IConversationDoc>(
   },
   {
     timestamps: true,
-    versionKey
-    : false,
+    versionKey: false,
     discriminatorKey: 'type',
   }
 )
 
-// Order chat schema
-const orderChatSchema = new Schema<IOrderChat>(
+// Use IOrderChatDoc here
+const orderChatSchema = new Schema<IOrderChatDoc>(
   {
     order: {
-      type: Types.ObjectId,
+      type: Schema.Types.ObjectId, // Recommended over Types.ObjectId inside schema definitions
       ref: 'Order',
       required: true,
     },
@@ -36,8 +36,8 @@ const orderChatSchema = new Schema<IOrderChat>(
   }
 )
 
-// Order chat schema
-const supportSchema = new Schema<ISupportChat>(
+// Use ISupportChatDoc here
+const supportSchema = new Schema<ISupportChatDoc>(
   {
     isSupportTicket: {
       type: Boolean,
@@ -49,15 +49,11 @@ const supportSchema = new Schema<ISupportChat>(
   }
 )
 
-// Static method
-// conversationSchema.statics.getById = async function (id: string) {
-//   return this.findById(id)
-// }
-
+// Create Base Model
 export const Conversation = model<IConversationDoc>('Conversation', conversationSchema)
 
-// Create Order Chat Model :
-export const OrderChat = Conversation.discriminator('OrderChat', orderChatSchema)
+// Create Order Chat Model with strict Generic typing:
+export const OrderChat = Conversation.discriminator<IOrderChatDoc>('OrderChat', orderChatSchema)
 
-// Create Support  Model :
-export const SupportChat = Conversation.discriminator('Support', supportSchema)
+// Create Support Model with strict Generic typing:
+export const SupportChat = Conversation.discriminator<ISupportChatDoc>('Support', supportSchema)
