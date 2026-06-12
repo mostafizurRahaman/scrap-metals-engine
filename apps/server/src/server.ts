@@ -1,5 +1,5 @@
 import { connectDB } from '@repo/db'
-import { Server } from 'http'
+import { Server, createServer } from 'http'
 import configs from './app/configs'
 import app from './app'
 import { logger } from '@app/libs/logger'
@@ -7,8 +7,11 @@ import { logger } from '@app/libs/logger'
 import dns from 'node:dns/promises'
 import { seedSuperAdmin } from '@app/libs/seed-super-admin'
 
+import { socketConfigs } from '@app/libs/socket/socket.config'
+
 dns.setServers(['1.1.1.1'])
-let server: Server
+let server: Server = createServer(app)
+
 //  boostrap function :
 const boostrap = async () => {
   try {
@@ -17,6 +20,10 @@ const boostrap = async () => {
     logger.info('✅ Database connected  successfully!')
 
     await seedSuperAdmin()
+
+    // ? Socket serevr registered:
+    socketConfigs.init(server)
+
     // server listen :
     server = app.listen(configs.port, () => {
       logger.info(`🧑‍🚀🚀 Server is running on ${configs.port}`)
