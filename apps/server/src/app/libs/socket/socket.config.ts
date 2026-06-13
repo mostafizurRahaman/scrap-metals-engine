@@ -195,6 +195,19 @@ const registerSocketHandler = (io: TServer) => {
       // join into channel (conversation id)
       socket.join(conversation?._id?.toString())
       socket.data.activeConversation = conversation?._id?.toString()
+
+      await ConversationUser?.findOneAndUpdate(
+        {
+          conversation: conversation?._id,
+          user: user?._id,
+        },
+        {
+          $set: {
+            lastReadAt: new Date(),
+          },
+        }
+      )
+
       logger.info(`${user?.name} is joined into conversation channel.`)
     })
 
@@ -241,6 +254,16 @@ const registerSocketHandler = (io: TServer) => {
         return socket.emit('socket_error', {
           success: false,
           message: `You are not a member of this conversation!`,
+          data: null,
+        })
+      }
+
+      const room = io.sockets.adapter.rooms.get(conversation?._id?.toString())
+      const isJoined = room?.has(socket.id)
+      if (!isJoined) {
+        return socket.emit('socket_error', {
+          success: false,
+          message: `Please join first into conversation!`,
           data: null,
         })
       }
@@ -309,6 +332,7 @@ const registerSocketHandler = (io: TServer) => {
         if (Array.isArray(activeParticipantIds) && activeParticipantIds.length >= 1) {
           await ConversationUser.updateMany(
             {
+              conversation: conversation?._id,
               user: {
                 $in: activeParticipantIds,
               },
@@ -341,6 +365,111 @@ const registerSocketHandler = (io: TServer) => {
       } finally {
         await session.endSession()
       }
+    })
+
+    // ? Typing :
+    socket.on('typing', async ({ conversationId }) => {
+      const user = socket.data.user
+      // ? Check is conversation is a valid id?:
+      if (!mongoose.isValidObjectId(conversationId)) {
+        return socket.emit('socket_error', {
+          success: false,
+          message: 'Invalid conversation id',
+          data: null,
+        })
+      }
+
+      // ? Check any conversation active with this id?:
+      const conversation = await Conversation.findById(conversationId)
+      if (!conversation) {
+        return socket.emit('socket_error', {
+          success: false,
+          message: `Conversation does not exist!`,
+          data: null,
+        })
+      }
+
+      // ? Check is the user member of this channel ?:
+      const isMember = await ConversationUser.exists({
+        user: user?._id,
+        conversation: conversation?._id,
+      })
+
+      if (!isMember) {
+        return socket.emit('socket_error', {
+          success: false,
+          message: `You are not a member of this conversation!`,
+          data: null,
+        })
+      }
+
+      const room = io.sockets.adapter.rooms.get(conversation?._id?.toString())
+      const isJoined = room?.has(socket.id)
+      if (!isJoined) {
+        return socket.emit('socket_error', {
+          success: false,
+          message: `Please join first into conversation!`,
+          data: null,
+        })
+      }
+
+      socket.to(conversation?._id?.toString()).emit('display_typing', {
+        success: true,
+        message: `${user?.name} is typing.`,
+        data: {
+          typing: true,
+          userName: user?.name,
+          userProfileImg: user?.profileImage,
+          userId: user?._id,
+          role: user?.role,
+        },
+      })
+    })
+
+    // ? Leave Conversation Channel:
+    socket.on('leave_conversation', async ({ conversationId }) => {
+      // ? Check is conversation is a valid id?:
+      if (!mongoose.isValidObjectId(conversationId)) {
+        return socket.emit('socket_error', {
+          success: false,
+          message: 'Invalid conversation id',
+          data: null,
+        })
+      }
+
+      // ? Check any conversation active with this id?:
+      const conversation = await Conversation.findById(conversationId)
+      if (!conversation) {
+        return socket.emit('socket_error', {
+          success: false,
+          message: `Conversation does not exist!`,
+          data: null,
+        })
+      }
+
+      // ? Check is the user member of this channel ?:
+      const isMember = await ConversationUser.exists({
+        user: user?._id,
+        conversation: conversation?._id,
+      })
+
+      if (!isMember) {
+        return socket.emit('socket_error', {
+          success: false,
+          message: `You are not a member of this conversation!`,
+          data: null,
+        })
+      }
+
+      // 3. Update their leftAt timestamp in the database tracking
+      await ConversationUser.updateOne(
+        { conversation: conversationId, user: user?._id },
+        { $set: { lastReadAt: new Date() } }
+      )
+
+      logger.info(`🚪 ${user?.name} explicitly left conversation room: ${conversation?._id}`)
+
+      socket.leave(conversation?._id?.toString())
     })
 
     //  ? Socket disconnect :
