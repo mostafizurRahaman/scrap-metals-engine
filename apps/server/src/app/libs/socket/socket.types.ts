@@ -27,6 +27,7 @@ export type TDisplayTyping = <T>(data: ISocketResponse<T>) => void
 
 // ? Client to server events:
 export type TJoinFunc = (data: { conversationId: string }) => void
+export type TJoinSupportFunc = (data: { conversationId: string }) => void
 export type TSendMessage = (data: IMessagePayload) => void
 export type TTyping = (data: TTypingPayload) => void
 export type TLeaveFunc = (data: { conversationId: string }) => void
@@ -38,6 +39,7 @@ export interface IServerToClientEvents {
 
 export interface IClientToServerEvents {
   join: TJoinFunc
+  join_support: TJoinSupportFunc
   send_message: TSendMessage
   typing: TTyping
   leave_conversation: TLeaveFunc

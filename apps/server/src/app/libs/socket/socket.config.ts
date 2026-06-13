@@ -4,12 +4,15 @@ import { Server, type ServerOptions } from 'socket.io'
 import { logger } from '../logger'
 import mongoose from 'mongoose'
 import {
+  AuthRoles,
   AuthStatus,
   Conversation,
   conversationType,
   ConversationUser,
   Message,
+  OrderChat,
   OrderChatStatus,
+  SupportChat,
   User,
   type IMessageDoc,
   type IOrderChatDoc,
@@ -161,7 +164,7 @@ const registerSocketHandler = (io: TServer) => {
       }
 
       // ? Check any conversation active with this id?:
-      const conversation = await Conversation.findById(conversationId)
+      const conversation = await OrderChat.findById(conversationId)
       if (!conversation) {
         return socket.emit('socket_error', {
           success: false,
@@ -177,6 +180,82 @@ const registerSocketHandler = (io: TServer) => {
       })
 
       if (!isMember) {
+        return socket.emit('socket_error', {
+          success: false,
+          message: `You are not a member of this conversation!`,
+          data: null,
+        })
+      }
+
+      // ? Check is user already joined into this room?:
+      const room = io.sockets.adapter.rooms.get(conversation?._id?.toString())
+      const isJoined = room?.has(socket.id)
+      if (isJoined) {
+        logger.info(`${user?.name} has already joined into conversation channel.`)
+        return
+      }
+
+      // join into channel (conversation id)
+      socket.join(conversation?._id?.toString())
+      socket.data.activeConversation = conversation?._id?.toString()
+
+      await ConversationUser?.findOneAndUpdate(
+        {
+          conversation: conversation?._id,
+          user: user?._id,
+        },
+        {
+          $set: {
+            lastReadAt: new Date(),
+          },
+        }
+      )
+
+      logger.info(`${user?.name} is joined into conversation channel.`)
+    })
+
+    //  ? Join (Support) into channel:
+    socket.on('join_support', async ({ conversationId }) => {
+      // ? Check is conversation is a valid id?:
+      if (!mongoose.isValidObjectId(conversationId)) {
+        return socket.emit('socket_error', {
+          success: false,
+          message: 'Invalid conversation id',
+          data: null,
+        })
+      }
+
+      // ? Check any conversation active with this id?:
+      const conversation = await SupportChat.findById(conversationId)
+      if (!conversation) {
+        return socket.emit('socket_error', {
+          success: false,
+          message: `Support conversation does not exist!`,
+          data: null,
+        })
+      }
+
+      // ? Check is current user role:
+      const isAdminUser = [AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN].includes(
+        user?.role as 'admin' | 'superadmin'
+      )
+
+      // ? Check is the user member of this channel ?:
+      const isMember = await ConversationUser.exists({
+        user: user?._id,
+        conversation: conversation?._id,
+      })
+
+      if (isAdminUser && !isMember) {
+        await ConversationUser.create({
+          conversation: conversation._id,
+          user: user?._id,
+          joinedAt: new Date(),
+          lastReadAt: new Date(),
+        })
+      }
+
+      if (!isAdminUser && !isMember) {
         return socket.emit('socket_error', {
           success: false,
           message: `You are not a member of this conversation!`,

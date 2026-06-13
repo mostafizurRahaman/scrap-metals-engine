@@ -1,27 +1,68 @@
-import { Conversation, conversationSearchableFields } from '@repo/db'
+import {
+  Conversation,
+  conversationSearchableFields,
+  ConversationUser,
+  SupportChat,
+  type IUser,
+} from '@repo/db'
 import httpStatus from 'http-status'
 import { AppError } from '@repo/shared'
 import type { PipelineStage } from 'mongoose'
 
-import type {
-  TCreateConversationPayloadType,
-  TUpdateConversationPayloadType,
-  TGetAllConversationQueryParamsType,
-} from './conversation.validations'
+import type { TGetAllConversationQueryParamsType } from './conversation.validations'
+import mongoose from 'mongoose'
 
-const createConversation = async (payload: TCreateConversationPayloadType) => {
-  const result = await Conversation.create(payload)
-  return result
-}
+const createOrGetSupport = async (user: IUser) => {
+  const session = await mongoose.startSession()
+  try {
+    await session.startTransaction()
+    // ? Check any support conversation exists for this user ? :
+    const supportChat = await SupportChat.findOneAndUpdate(
+      {
+        user: user?._id,
+        role: user?.role,
+      },
+      {
+        user: user?._id,
+        role: user?.role,
+      },
+      { session, new: true, upsert: true }
+    )
 
-const updateConversation = async (id: string, payload: TUpdateConversationPayloadType) => {
-  const result = await Conversation.findOneAndUpdate({ _id: id }, { $set: payload }, { new: true })
+    if (!supportChat) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Failed to create support.')
+    }
 
-  if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Conversation not found')
+    await ConversationUser.findOneAndUpdate(
+      {
+        user: user?._id,
+        conversation: supportChat._id,
+      },
+      {
+        $set: {
+          user: user?._id,
+          conversation: supportChat._id,
+          role: user?.role,
+          joinedAt: new Date(),
+          lastReadAt: new Date(),
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+        session,
+      }
+    )
+
+    await session.commitTransaction()
+    return supportChat
+  } catch (error) {
+    console.log(error)
+    await session.abortTransaction()
+    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, 'Internal server error!')
+  } finally {
+    await session.endSession()
   }
-
-  return result
 }
 
 const getAllConversation = async (query: TGetAllConversationQueryParamsType) => {
@@ -81,30 +122,7 @@ const getAllConversation = async (query: TGetAllConversationQueryParamsType) => 
   }
 }
 
-const getConversationById = async (id: string) => {
-  const result = await Conversation.findById(id)
-
-  if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Conversation not found')
-  }
-
-  return result
-}
-
-const deleteConversationById = async (id: string) => {
-  const result = await Conversation.findOneAndDelete({ _id: id })
-
-  if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Conversation not found')
-  }
-
-  return result
-}
-
 export const conversationServices = {
-  createConversation,
-  updateConversation,
   getAllConversation,
-  getConversationById,
-  deleteConversationById,
+  createOrGetSupport,
 }

@@ -1,5 +1,6 @@
 import { Document, Types } from 'mongoose'
 import type { TConversationType, TOrderChatStatusType } from './conversation.constants'
+import type { TAuthRole } from '../User'
 
 export interface IConversation {
   type: TConversationType
@@ -11,7 +12,8 @@ export interface IOrderChat extends IConversation {
 }
 
 export interface ISupportChat extends IConversation {
-  isSupportTicket: boolean
+  user: Types.ObjectId
+  role: TAuthRole
 }
 
 export interface IConversationDoc extends Document, IConversation {}
