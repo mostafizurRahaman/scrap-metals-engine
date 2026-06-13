@@ -10,7 +10,7 @@ import { seedSuperAdmin } from '@app/libs/seed-super-admin'
 import { socketConfigs } from '@app/libs/socket/socket.config'
 
 dns.setServers(['1.1.1.1'])
-let server: Server = createServer(app)
+const server: Server = createServer(app)
 
 //  boostrap function :
 const boostrap = async () => {
@@ -25,7 +25,7 @@ const boostrap = async () => {
     socketConfigs.init(server)
 
     // server listen :
-    server = app.listen(configs.port, () => {
+    server.listen(configs.port, () => {
       logger.info(`🧑‍🚀🚀 Server is running on ${configs.port}`)
     })
   } catch (err) {
