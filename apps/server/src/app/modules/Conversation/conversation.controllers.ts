@@ -2,6 +2,7 @@ import { catchAsync, sendResponse } from '@repo/shared'
 import httpStatus from 'http-status'
 import { conversationServices } from './conversation.services'
 import { getUserFromRequest } from '@app/libs/get-user-from-requests'
+import type { TGetAllConversationQueryParamsType } from './conversation.validations'
 
 const createOrGetSupport = catchAsync(async (req, res) => {
   const user = await getUserFromRequest(req)
@@ -15,8 +16,12 @@ const createOrGetSupport = catchAsync(async (req, res) => {
   })
 })
 
-const getAllConversation = catchAsync(async (req, res) => {
-  const result = await conversationServices.getAllConversation(req.query)
+const getAllConversationOrderType = catchAsync(async (req, res) => {
+  const user = await getUserFromRequest(req)
+  const result = await conversationServices.getAllConversationOrderType(
+    user,
+    req.query as unknown as TGetAllConversationQueryParamsType
+  )
 
   sendResponse(res, {
     success: true,
@@ -28,6 +33,6 @@ const getAllConversation = catchAsync(async (req, res) => {
 })
 
 export const conversationControllers = {
-  getAllConversation,
+  getAllConversationOrderType,
   createOrGetSupport,
 }

@@ -15,8 +15,9 @@ router.post(
 
 router.get(
   '/all',
+  auth(),
   validateRequest(conversationValidations.getAllConversationSchema),
-  conversationControllers.getAllConversation
+  conversationControllers.getAllConversationOrderType
 )
 
 export const conversationRoutes = router
