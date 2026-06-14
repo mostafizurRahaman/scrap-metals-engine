@@ -1,6 +1,7 @@
-import { Schema, model } from 'mongoose'
+import { Schema, Types, model } from 'mongoose'
 import type { IConversationDoc, IOrderChatDoc, ISupportChatDoc } from './conversation.interfaces'
 import { conversationTypeValues, orderChatStatusValues } from './conversation.constants'
+import { AuthRolesValues } from '../User'
 
 // Base Schema remains the same
 const conversationSchema = new Schema<IConversationDoc>(
@@ -39,9 +40,16 @@ const orderChatSchema = new Schema<IOrderChatDoc>(
 // Use ISupportChatDoc here
 const supportSchema = new Schema<ISupportChatDoc>(
   {
-    isSupportTicket: {
-      type: Boolean,
-      default: true,
+    user: {
+      type: Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+
+    role: {
+      type: String,
+      enum: AuthRolesValues,
+      required: true,
     },
   },
   {

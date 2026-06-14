@@ -3,6 +3,7 @@ import { assignedEmployeeRoutes } from '@app/modules/AssignedEmployee/assigned-e
 import { authRoutes } from '@app/modules/Auth/user.routes'
 import { bannerRoutes } from '@app/modules/Banner/banner.routes'
 import { contentRoutes } from '@app/modules/Content/content.routes'
+import { conversationRoutes } from '@app/modules/Conversation/conversation.routes'
 import { employeeRoutes } from '@app/modules/Employee/employee.routes'
 import { metalRoutes } from '@app/modules/Metal/metal.routes'
 import { orderRoutes } from '@app/modules/Order/order.routes'
@@ -52,6 +53,10 @@ const routes = [
   {
     path: '/analytics',
     route: analyticsRoutes,
+  },
+  {
+    path: '/conversation',
+    route: conversationRoutes,
   },
 ]
 

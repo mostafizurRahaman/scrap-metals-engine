@@ -531,11 +531,12 @@ const getAllAssignedEmployee = async (
     },
     {
       $addFields: {
-        orderId: '$_id',
+        assignmentId: '$_id',
         orderNumber: '$orderDetails.orderNumber',
         orderType: '$orderDetails.orderType',
         deliveryType: '$orderDetails.deliveryType',
         status: '$status',
+        orderId: '$order',
         orderStatus: '$orderDetails.status',
         orderPlacedAt: '$orderDetails.orderRequestedAt',
         preferredDate: '$orderDetails.prefferredDate',
@@ -555,6 +556,7 @@ const getAllAssignedEmployee = async (
     },
     {
       $project: {
+        order: 0,
         orderDetails: 0,
         employeeDetails: 0,
       },
@@ -693,6 +695,7 @@ const getAssignedEmployeeById = async (user: IUser, id: string) => {
         orderPlacedAt: '$orderDetails.orderRequestedAt',
         preferredDate: '$orderDetails.prefferredDate',
         pickupAddress: '$orderDetails.pickupAddress',
+        attachments: '$orderDetails.attachments',
         vinNumber: 'orderDetails.vinNumber',
         model: '$orderDetails.model',
         year: '$orderDetails.year',
