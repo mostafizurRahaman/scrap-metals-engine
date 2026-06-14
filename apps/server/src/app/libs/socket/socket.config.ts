@@ -216,6 +216,7 @@ const registerSocketHandler = (io: TServer) => {
 
     //  ? Join (Support) into channel:
     socket.on('join_support', async ({ conversationId }) => {
+      console.log(user)
       // ? Check is conversation is a valid id?:
       if (!mongoose.isValidObjectId(conversationId)) {
         return socket.emit('socket_error', {
@@ -250,6 +251,7 @@ const registerSocketHandler = (io: TServer) => {
         await ConversationUser.create({
           conversation: conversation._id,
           user: user?._id,
+          role: user?.role,
           joinedAt: new Date(),
           lastReadAt: new Date(),
         })
@@ -292,6 +294,7 @@ const registerSocketHandler = (io: TServer) => {
 
     // ? Send Message:
     socket.on('send_message', async ({ message, attachments, conversationId }) => {
+      console.log(user)
       // ? Check is conversation is a valid id?:
       if (!mongoose.isValidObjectId(conversationId)) {
         return socket.emit('socket_error', {
