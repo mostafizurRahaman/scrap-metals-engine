@@ -2,7 +2,7 @@ import type { TServer } from './socket.types'
 import { Server as HttpServer } from 'http'
 import { Server, type ServerOptions } from 'socket.io'
 import { logger } from '../logger'
-import mongoose from 'mongoose'
+import mongoose, { Types } from 'mongoose'
 import {
   AuthRoles,
   AuthStatus,
@@ -20,6 +20,7 @@ import {
 import httpStatus from 'http-status'
 import { AppError, verifyToken, type IJwtUserPayload } from 'packages/shared/src'
 import configs from '@app/configs'
+import { conversationServices } from '@app/modules/Conversation/conversation.services'
 // let io :
 let io: TServer | null = null
 
@@ -211,12 +212,21 @@ const registerSocketHandler = (io: TServer) => {
         }
       )
 
+      const allParticipants = await conversationServices.getConversationParticipants(
+        conversation?._id
+      )
+
+      io.to(conversation?._id?.toString()).emit('participant_status', {
+        success: true,
+        message: 'Participants status retrived successfully',
+        data: allParticipants,
+      })
+
       logger.info(`${user?.name} is joined into conversation channel.`)
     })
 
     //  ? Join (Support) into channel:
     socket.on('join_support', async ({ conversationId }) => {
-      console.log(user)
       // ? Check is conversation is a valid id?:
       if (!mongoose.isValidObjectId(conversationId)) {
         return socket.emit('socket_error', {
@@ -275,6 +285,7 @@ const registerSocketHandler = (io: TServer) => {
 
       // join into channel (conversation id)
       socket.join(conversation?._id?.toString())
+
       socket.data.activeConversation = conversation?._id?.toString()
 
       await ConversationUser?.findOneAndUpdate(
@@ -288,6 +299,16 @@ const registerSocketHandler = (io: TServer) => {
           },
         }
       )
+
+      const allParticipants = await conversationServices.getConversationParticipants(
+        conversation?._id
+      )
+
+      io.to(conversation?._id?.toString()).emit('participant_status', {
+        success: true,
+        message: 'Participants status retrived successfully',
+        data: allParticipants,
+      })
 
       logger.info(`${user?.name} is joined into conversation channel.`)
     })
@@ -431,10 +452,21 @@ const registerSocketHandler = (io: TServer) => {
         }
 
         await session.commitTransaction()
+
+        const allParticipants = await conversationServices.getConversationParticipants(
+          conversation?._id
+        )
+
         io.to(conversation?._id.toString()).emit('new_message', {
           success: true,
           message: 'New Message',
           data: newMessage as IMessageDoc,
+        })
+
+        io.to(conversation?._id?.toString()).emit('participant_status', {
+          success: true,
+          message: 'Participants status retrived successfully',
+          data: allParticipants,
         })
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
@@ -551,12 +583,52 @@ const registerSocketHandler = (io: TServer) => {
 
       logger.info(`🚪 ${user?.name} explicitly left conversation room: ${conversation?._id}`)
 
+      const allParticipants = await conversationServices.getConversationParticipants(
+        new Types.ObjectId(conversationId)
+      )
+
+      // 3. Room এর বাকিদের জানাও
+
       socket.leave(conversation?._id?.toString())
+      io.to(conversationId).emit('participant_status', {
+        success: true,
+        message: 'Participants status retrieved successfully',
+        data: allParticipants,
+      })
     })
 
     //  ? Socket disconnect :
-    socket.on('disconnect', (reason) => {
+    socket.on('disconnect', async (reason) => {
       logger.info(`❌ Socket io is disconnected for ${reason}`)
+
+      const activeConversationId = socket.data.activeConversation
+      if (!activeConversationId) return
+
+      try {
+        // 1. lastReadAt update
+        await ConversationUser.findOneAndUpdate(
+          {
+            conversation: activeConversationId,
+            user: user?._id,
+          },
+          {
+            $set: { lastReadAt: new Date() },
+          }
+        )
+
+        // 2. Updated participants list fetch
+        const allParticipants = await conversationServices.getConversationParticipants(
+          new Types.ObjectId(activeConversationId)
+        )
+
+        io.to(activeConversationId).emit('participant_status', {
+          success: true,
+          message: 'Participants status retrieved successfully',
+          data: allParticipants,
+        })
+      } catch (error) {
+        logger.error('Failed to handle disconnect cleanup', error)
+      }
     })
   })
 }

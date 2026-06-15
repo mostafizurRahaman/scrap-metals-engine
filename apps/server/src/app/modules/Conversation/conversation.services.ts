@@ -481,37 +481,6 @@ const getAllMessages = async (
     throw new AppError(httpStatus.BAD_REQUEST, 'You are not a member of this conversation.')
   }
 
-  const converstaionUsers = await ConversationUser?.aggregate([
-    {
-      $match: {
-        conversation: conversation?._id,
-      },
-    },
-    {
-      $lookup: {
-        from: 'users',
-        localField: 'user',
-        foreignField: '_id',
-        as: 'userDetails',
-      },
-    },
-    {
-      $unwind: {
-        path: '$userDetails',
-        preserveNullAndEmptyArrays: true,
-      },
-    },
-    {
-      $project: {
-        userId: '$userDetails._id',
-        name: '$userDetails.name',
-        joinedAt: '$joinedAt',
-        lastReadAt: '$lastReadAt',
-        profileImage: { $ifNull: ['$userDetails.profileImage', null] },
-      },
-    },
-  ])
-
   // Check is there any one matched with current user:
   const isMember = participants.find((p) => p.user?.toString() === user?._id?.toString())
 
@@ -590,9 +559,11 @@ const getAllMessages = async (
   const data = aggregated?.[0]?.data || []
   const total = aggregated?.[0]?.meta?.[0]?.total || 0
 
+  const allParticipants = await getConversationParticipants(conversation?._id)
+
   return {
     data: {
-      participants: converstaionUsers || [],
+      participants: allParticipants,
       messages: data,
     },
     meta: {
@@ -604,9 +575,45 @@ const getAllMessages = async (
   }
 }
 
+const getConversationParticipants = async (conversationId: Types.ObjectId) => {
+  const converstaionUsers = await ConversationUser?.aggregate([
+    {
+      $match: {
+        conversation: conversationId,
+      },
+    },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'user',
+        foreignField: '_id',
+        as: 'userDetails',
+      },
+    },
+    {
+      $unwind: {
+        path: '$userDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        userId: '$userDetails._id',
+        name: '$userDetails.name',
+        joinedAt: '$joinedAt',
+        lastReadAt: '$lastReadAt',
+        profileImage: { $ifNull: ['$userDetails.profileImage', null] },
+      },
+    },
+  ])
+
+  return converstaionUsers || []
+}
+
 export const conversationServices = {
   getAllConversationOrderType,
   createOrGetSupport,
   getAllSupportConversationForAdmin,
   getAllMessages,
+  getConversationParticipants,
 }
