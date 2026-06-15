@@ -530,8 +530,23 @@ const getAllAssignedEmployee = async (
       },
     },
     {
+      $lookup: {
+        from: 'conversations',
+        localField: 'orderDetails._id',
+        foreignField: 'order',
+        as: 'conversationDetails',
+      },
+    },
+    {
+      $unwind: {
+        path: '$conversationDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
       $addFields: {
         assignmentId: '$_id',
+        conversationId: { $ifNull: ['$conversationDetails._id', null] },
         orderNumber: '$orderDetails.orderNumber',
         orderType: '$orderDetails.orderType',
         deliveryType: '$orderDetails.deliveryType',
@@ -559,6 +574,7 @@ const getAllAssignedEmployee = async (
         order: 0,
         orderDetails: 0,
         employeeDetails: 0,
+        conversationDetails: 0,
       },
     }
   )
@@ -672,6 +688,7 @@ const getAssignedEmployeeById = async (user: IUser, id: string) => {
         ],
       },
     },
+
     {
       $unwind: {
         path: '$employeeDetails',
@@ -685,9 +702,24 @@ const getAssignedEmployeeById = async (user: IUser, id: string) => {
       },
     },
     {
+      $lookup: {
+        from: 'conversations',
+        localField: 'orderDetails._id',
+        foreignField: 'order',
+        as: 'conversationDetails',
+      },
+    },
+    {
+      $unwind: {
+        path: '$conversationDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
       $addFields: {
         orderId: '$_id',
         orderNumber: '$orderDetails.orderNumber',
+        conversationId: { $ifNull: ['$conversationDetails._id', null] },
         orderType: '$orderDetails.orderType',
         deliveryType: '$orderDetails.deliveryType',
         status: '$status',
@@ -696,7 +728,7 @@ const getAssignedEmployeeById = async (user: IUser, id: string) => {
         preferredDate: '$orderDetails.prefferredDate',
         pickupAddress: '$orderDetails.pickupAddress',
         attachments: '$orderDetails.attachments',
-        vinNumber: 'orderDetails.vinNumber',
+        vinNumber: '$orderDetails.vinNumber',
         model: '$orderDetails.model',
         year: '$orderDetails.year',
         items: '$orderDetails.items',
@@ -716,6 +748,7 @@ const getAssignedEmployeeById = async (user: IUser, id: string) => {
     },
     {
       $project: {
+        conversationDetails: 0,
         employeeDetails: 0,
         orderDetails: 0,
       },
@@ -771,6 +804,7 @@ const getCurrentOngoingAssignment = async (user: IUser) => {
         ],
       },
     },
+
     {
       $unwind: {
         path: '$employeeDetails',
@@ -784,10 +818,25 @@ const getCurrentOngoingAssignment = async (user: IUser) => {
       },
     },
     {
+      $lookup: {
+        from: 'conversations',
+        localField: 'orderDetails._id',
+        foreignField: 'order',
+        as: 'conversationDetails',
+      },
+    },
+    {
+      $unwind: {
+        path: '$conversationDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
       $addFields: {
         orderId: '$_id',
         orderNumber: '$orderDetails.orderNumber',
         orderType: '$orderDetails.orderType',
+        conversationId: { $ifNull: ['$conversationDetails._id', null] },
         deliveryType: '$orderDetails.deliveryType',
         status: '$status',
         orderStatus: '$orderDetails.status',
@@ -811,6 +860,7 @@ const getCurrentOngoingAssignment = async (user: IUser) => {
       $project: {
         orderDetails: 0,
         employeeDetails: 0,
+        conversationDetails: 0,
       },
     },
     {

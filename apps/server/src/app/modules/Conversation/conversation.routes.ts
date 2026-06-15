@@ -4,8 +4,19 @@ import { conversationControllers } from './conversation.controllers'
 import { conversationValidations } from './conversation.validations'
 import { AuthRoles } from 'packages/db/src'
 import { auth } from '@app/middlewares/auth'
+import { multerFactory } from 'packages/media-hub/src'
 
 const router: Router = express.Router()
+
+router.post(
+  '/attachment',
+  multerFactory({
+    category: 'image',
+    maxSizeInMB: 5,
+  }).single('attachment'),
+  auth(),
+  conversationControllers.uploadFile
+)
 
 router.post(
   '/support',
@@ -18,6 +29,20 @@ router.get(
   auth(),
   validateRequest(conversationValidations.getAllConversationSchema),
   conversationControllers.getAllConversationOrderType
+)
+
+router.get(
+  '/all/support',
+  auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN),
+  validateRequest(conversationValidations.getAllConversationSchema),
+  conversationControllers.getAllSupportConversationForAdmin
+)
+
+router.get(
+  '/:id/messages',
+  auth(),
+  validateRequest(conversationValidations.getAllMessagesByConvIDSchema),
+  conversationControllers.getAllMessages
 )
 
 export const conversationRoutes = router

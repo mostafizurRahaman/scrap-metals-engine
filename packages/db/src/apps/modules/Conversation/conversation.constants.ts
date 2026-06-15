@@ -1,4 +1,11 @@
-export const conversationSearchableFields = ['name'] as const
+export const conversationSearchableFields = ['opponentEmail', 'opponentName'] as const
+
+export const supportConversationSearchableFields = [
+  'requesterRole',
+  'requesterEmail',
+  'requesterName',
+] as const
+export const messageSearchableFields = ['text', 'senderName'] as const
 
 export const conversationSortableFields = ['createdAt', 'updatedAt'] as const
 

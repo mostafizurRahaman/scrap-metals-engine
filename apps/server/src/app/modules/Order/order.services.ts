@@ -1036,7 +1036,6 @@ const completePickupOrder = async (user: IUser, orderId: string) => {
 
 const getCustomerAllOrder = async (user: IUser, query: TGetAllOrderQueryParamsType) => {
   const { status } = query
-  console.log(status)
   const { page, limit, fromDate, toDate, dateFilter, searchTerm, skip, sortBy, sortOrder } =
     formatQuery(query as BaseQueryParams)
 
@@ -1081,6 +1080,23 @@ const getCustomerAllOrder = async (user: IUser, query: TGetAllOrderQueryParamsTy
       })
     }
   }
+
+  pipeline.push(
+    {
+      $lookup: {
+        from: 'conversations',
+        localField: '_id',
+        foreignField: 'order',
+        as: 'conversationDetails',
+      },
+    },
+    {
+      $unwind: {
+        path: '$conversationDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    }
+  )
 
   pipeline.push(
     {
@@ -1139,6 +1155,7 @@ const getCustomerAllOrder = async (user: IUser, query: TGetAllOrderQueryParamsTy
       $addFields: {
         orderId: '$_id',
         customerId: '$customerDetails._id',
+        conversationId: { $ifNull: ['$conversationDetails._id', null] },
         customerName: '$customerDetails.name',
         customerEmail: '$customerDetails.email',
         customerPhoneNumber: '$customerDetails.phoneNumber',
