@@ -32,7 +32,24 @@ const getAllConversationOrderType = catchAsync(async (req, res) => {
   })
 })
 
+const getAllSupportConversationForAdmin = catchAsync(async (req, res) => {
+  const user = await getUserFromRequest(req)
+  const result = await conversationServices.getAllSupportConversationForAdmin(
+    user,
+    req.query as unknown as TGetAllConversationQueryParamsType
+  )
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'All support conversation retrieved successfully!',
+    data: result.data,
+    meta: result.meta,
+  })
+})
+
 export const conversationControllers = {
   getAllConversationOrderType,
   createOrGetSupport,
+  getAllSupportConversationForAdmin,
 }

@@ -6,9 +6,8 @@ import {
   optionalString,
   optionalDate,
   sortingOrderValues,
-  enumString,
 } from '@repo/shared'
-import { conversationSortableFields, conversationTypeValues } from '@repo/db'
+import { conversationSortableFields } from '@repo/db'
 
 const createConversationSchema = z.object({
   body: z.object({}),

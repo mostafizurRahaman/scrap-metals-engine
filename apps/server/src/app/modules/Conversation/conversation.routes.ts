@@ -20,4 +20,11 @@ router.get(
   conversationControllers.getAllConversationOrderType
 )
 
+router.get(
+  '/all/support',
+  auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN),
+  validateRequest(conversationValidations.getAllConversationSchema),
+  conversationControllers.getAllSupportConversationForAdmin
+)
+
 export const conversationRoutes = router
