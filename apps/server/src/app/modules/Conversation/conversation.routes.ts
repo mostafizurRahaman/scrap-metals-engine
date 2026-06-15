@@ -27,4 +27,11 @@ router.get(
   conversationControllers.getAllSupportConversationForAdmin
 )
 
+router.get(
+  '/:id/messages',
+  auth(),
+  validateRequest(conversationValidations.getAllMessagesByConvIDSchema),
+  conversationControllers.getAllMessages
+)
+
 export const conversationRoutes = router

@@ -6,6 +6,7 @@ import {
   optionalString,
   optionalDate,
   sortingOrderValues,
+  requiredMongooseId,
 } from '@repo/shared'
 import { conversationSortableFields } from '@repo/db'
 
@@ -21,6 +22,21 @@ const updateConversationSchema = z.object({
 })
 
 const getAllConversationSchema = z.object({
+  query: z.object({
+    page: optionalNumber('Page'),
+    limit: optionalNumber('Limit'),
+    searchTerm: optionalString('Search term'),
+    sortOrder: optionalEnumString(sortingOrderValues, 'Sort order'),
+    sortBy: optionalEnumString(conversationSortableFields, 'Sort by'),
+    fromDate: optionalDate('From date'),
+    toDate: optionalDate('To date'),
+  }),
+})
+
+const getAllMessagesByConvIDSchema = z.object({
+  params: z.object({
+    id: requiredMongooseId('Conversation ID'),
+  }),
   query: z.object({
     page: optionalNumber('Page'),
     limit: optionalNumber('Limit'),
@@ -50,12 +66,16 @@ export const conversationValidations = {
   getAllConversationSchema,
   getConversationByIdSchema,
   deleteConversationByIdSchema,
+  getAllMessagesByConvIDSchema,
 }
 
 export type TCreateConversationPayloadType = z.infer<typeof createConversationSchema.shape.body>
 export type TUpdateConversationPayloadType = z.infer<typeof updateConversationSchema.shape.body>
 export type TGetAllConversationQueryParamsType = z.infer<
   typeof getAllConversationSchema.shape.query
+>
+export type TGetAllMessageByConversationIDQueryType = z.infer<
+  typeof getAllMessagesByConvIDSchema.shape.query
 >
 export type TGetConversationByIdParamsType = z.infer<typeof getConversationByIdSchema.shape.params>
 export type TDeleteConversationByIdParamsType = z.infer<

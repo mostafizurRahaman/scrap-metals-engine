@@ -1,7 +1,10 @@
 import {
+  Conversation,
   conversationSearchableFields,
   conversationType,
   ConversationUser,
+  Message,
+  messageSearchableFields,
   OrderChat,
   SupportChat,
   supportConversationSearchableFields,
@@ -11,7 +14,10 @@ import httpStatus from 'http-status'
 import { AppError, formatQuery, type BaseQueryParams } from '@repo/shared'
 import type { PipelineStage } from 'mongoose'
 
-import type { TGetAllConversationQueryParamsType } from './conversation.validations'
+import type {
+  TGetAllConversationQueryParamsType,
+  TGetAllMessageByConversationIDQueryType,
+} from './conversation.validations'
 import mongoose, { Types } from 'mongoose'
 
 const createOrGetSupport = async (user: IUser) => {
@@ -389,6 +395,7 @@ const getAllSupportConversationForAdmin = async (
 
   pipeline.push({
     $project: {
+      _id: 0,
       conversationId: '$_id',
       conversationType: '$type',
       requsterId: '$requesterDetails._id',
@@ -451,8 +458,155 @@ const getAllSupportConversationForAdmin = async (
   }
 }
 
+const getAllMessages = async (
+  user: IUser,
+  conversationId: string,
+  query: TGetAllMessageByConversationIDQueryType
+) => {
+  const { page, limit, skip, fromDate, toDate, dateFilter, searchTerm, sortBy, sortOrder } =
+    formatQuery(query as BaseQueryParams)
+
+  // 1. Check is conversation exists?:
+  const conversation = await Conversation.findOne({ _id: new Types.ObjectId(conversationId) })
+  if (!conversation) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Conversation not found!')
+  }
+
+  // 2. Check is this user is a member of this conversation:
+  const participants = await ConversationUser.find({
+    conversation: conversation?._id,
+  })
+
+  if (!participants || !Array.isArray(participants) || participants.length < 1) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'You are not a member of this conversation.')
+  }
+
+  const converstaionUsers = await ConversationUser?.aggregate([
+    {
+      $match: {
+        conversation: conversation?._id,
+      },
+    },
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'user',
+        foreignField: '_id',
+        as: 'userDetails',
+      },
+    },
+    {
+      $unwind: {
+        path: '$userDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
+      $project: {
+        userId: '$userDetails._id',
+        name: '$userDetails.name',
+        joinedAt: '$joinedAt',
+        lastReadAt: '$lastReadAt',
+        profileImage: { $ifNull: ['$userDetails.profileImage', null] },
+      },
+    },
+  ])
+
+  // Check is there any one matched with current user:
+  const isMember = participants.find((p) => p.user?.toString() === user?._id?.toString())
+
+  if (!isMember) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'You are not a member of this conversation.')
+  }
+
+  // 1. Initial Filtering (Narrow down dataset as early as possible)
+  const pipeline: PipelineStage[] = [
+    {
+      $match: {
+        conversation: conversation?._id,
+      },
+    },
+  ]
+
+  pipeline.push(
+    {
+      $lookup: {
+        from: 'users',
+        localField: 'sender',
+        foreignField: '_id',
+        as: 'senderDetails',
+      },
+    },
+    {
+      $unwind: {
+        path: '$senderDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    }
+  )
+
+  if (fromDate || toDate) {
+    pipeline.push({ $match: { createdAt: dateFilter } })
+  }
+
+  pipeline.push({
+    $project: {
+      messageId: '$_id',
+      conversationId: '$conversation',
+      text: '$text',
+      attachments: '$attachments',
+      senderId: '$sender',
+      senderName: '$senderDetails.name',
+      senderProfileImge: { $ifNull: ['$senderDetails.profileImage', null] },
+      createdAt: '$createdAt',
+      updatedAt: '$updatedAt',
+    },
+  })
+
+  // 7. Search Filter (Applied to computed projection fields)
+  if (searchTerm) {
+    pipeline.push({
+      $match: {
+        $or: messageSearchableFields.map((field) => ({
+          [field]: { $regex: searchTerm, $options: 'i' },
+        })),
+      },
+    })
+  }
+
+  // 8. Sorting
+  pipeline.push({ $sort: { [sortBy]: sortOrder === 'asc' ? 1 : -1 } })
+
+  // 9. Faceted Pagination
+  pipeline.push({
+    $facet: {
+      data: [{ $skip: skip }, { $limit: limit }],
+      meta: [{ $count: 'total' }],
+    },
+  })
+
+  const aggregated = await Message.aggregate(pipeline)
+
+  const data = aggregated?.[0]?.data || []
+  const total = aggregated?.[0]?.meta?.[0]?.total || 0
+
+  return {
+    data: {
+      participants: converstaionUsers || [],
+      messages: data,
+    },
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit) || 1,
+    },
+  }
+}
+
 export const conversationServices = {
   getAllConversationOrderType,
   createOrGetSupport,
   getAllSupportConversationForAdmin,
+  getAllMessages,
 }

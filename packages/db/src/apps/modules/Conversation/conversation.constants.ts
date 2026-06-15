@@ -5,6 +5,7 @@ export const supportConversationSearchableFields = [
   'requesterEmail',
   'requesterName',
 ] as const
+export const messageSearchableFields = ['text', 'senderName'] as const
 
 export const conversationSortableFields = ['createdAt', 'updatedAt'] as const
 

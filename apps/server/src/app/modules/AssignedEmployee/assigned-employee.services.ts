@@ -696,7 +696,7 @@ const getAssignedEmployeeById = async (user: IUser, id: string) => {
         preferredDate: '$orderDetails.prefferredDate',
         pickupAddress: '$orderDetails.pickupAddress',
         attachments: '$orderDetails.attachments',
-        vinNumber: 'orderDetails.vinNumber',
+        vinNumber: '$orderDetails.vinNumber',
         model: '$orderDetails.model',
         year: '$orderDetails.year',
         items: '$orderDetails.items',

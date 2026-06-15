@@ -2,7 +2,10 @@ import { catchAsync, sendResponse } from '@repo/shared'
 import httpStatus from 'http-status'
 import { conversationServices } from './conversation.services'
 import { getUserFromRequest } from '@app/libs/get-user-from-requests'
-import type { TGetAllConversationQueryParamsType } from './conversation.validations'
+import type {
+  TGetAllConversationQueryParamsType,
+  TGetAllMessageByConversationIDQueryType,
+} from './conversation.validations'
 
 const createOrGetSupport = catchAsync(async (req, res) => {
   const user = await getUserFromRequest(req)
@@ -48,8 +51,27 @@ const getAllSupportConversationForAdmin = catchAsync(async (req, res) => {
   })
 })
 
+const getAllMessages = catchAsync(async (req, res) => {
+  const user = await getUserFromRequest(req)
+  const conversationId = req.params.id as string
+  const result = await conversationServices.getAllMessages(
+    user,
+    conversationId,
+    req.query as unknown as TGetAllMessageByConversationIDQueryType
+  )
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'All message retreived successfully!',
+    data: result.data,
+    meta: result.meta,
+  })
+})
+
 export const conversationControllers = {
   getAllConversationOrderType,
   createOrGetSupport,
   getAllSupportConversationForAdmin,
+  getAllMessages,
 }
