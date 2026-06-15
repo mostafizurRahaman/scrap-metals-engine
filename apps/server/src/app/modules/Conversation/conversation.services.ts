@@ -19,6 +19,17 @@ import type {
   TGetAllMessageByConversationIDQueryType,
 } from './conversation.validations'
 import mongoose, { Types } from 'mongoose'
+import { uploadSingleFileToS3 } from 'packages/media-hub/src'
+
+const uploadFile = async (file: Express.Multer.File) => {
+  if (!file) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'File is required!')
+  }
+
+  const { url } = await uploadSingleFileToS3(file, 'attachments')
+
+  return url
+}
 
 const createOrGetSupport = async (user: IUser) => {
   const session = await mongoose.startSession()
@@ -616,4 +627,5 @@ export const conversationServices = {
   getAllSupportConversationForAdmin,
   getAllMessages,
   getConversationParticipants,
+  uploadFile,
 }

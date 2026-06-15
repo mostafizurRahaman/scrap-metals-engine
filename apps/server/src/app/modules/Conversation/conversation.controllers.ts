@@ -7,6 +7,18 @@ import type {
   TGetAllMessageByConversationIDQueryType,
 } from './conversation.validations'
 
+const uploadFile = catchAsync(async (req, res) => {
+  const file = req.file as Express.Multer.File
+  const result = await conversationServices.uploadFile(file)
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Attachments uploaded successfully!',
+    data: result,
+  })
+})
+
 const createOrGetSupport = catchAsync(async (req, res) => {
   const user = await getUserFromRequest(req)
   const result = await conversationServices.createOrGetSupport(user)
@@ -74,4 +86,5 @@ export const conversationControllers = {
   createOrGetSupport,
   getAllSupportConversationForAdmin,
   getAllMessages,
+  uploadFile,
 }

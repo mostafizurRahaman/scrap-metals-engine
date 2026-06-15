@@ -4,8 +4,19 @@ import { conversationControllers } from './conversation.controllers'
 import { conversationValidations } from './conversation.validations'
 import { AuthRoles } from 'packages/db/src'
 import { auth } from '@app/middlewares/auth'
+import { multerFactory } from 'packages/media-hub/src'
 
 const router: Router = express.Router()
+
+router.post(
+  '/attachment',
+  multerFactory({
+    category: 'image',
+    maxSizeInMB: 5,
+  }).single('attachment'),
+  auth(),
+  conversationControllers.uploadFile
+)
 
 router.post(
   '/support',
