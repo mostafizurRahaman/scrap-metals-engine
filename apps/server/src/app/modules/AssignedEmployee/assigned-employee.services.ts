@@ -772,6 +772,20 @@ const getCurrentOngoingAssignment = async (user: IUser) => {
       },
     },
     {
+      $lookup: {
+        from: 'conversations',
+        localField: '_id',
+        foreignField: 'order',
+        as: 'conversationDetails',
+      },
+    },
+    {
+      $unwind: {
+        path: '$conversationDetails',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
       $unwind: {
         path: '$employeeDetails',
         preserveNullAndEmptyArrays: true,
@@ -788,6 +802,7 @@ const getCurrentOngoingAssignment = async (user: IUser) => {
         orderId: '$_id',
         orderNumber: '$orderDetails.orderNumber',
         orderType: '$orderDetails.orderType',
+        conversationId: { $ifNull: ['$conversationDetails._id', null] },
         deliveryType: '$orderDetails.deliveryType',
         status: '$status',
         orderStatus: '$orderDetails.status',
