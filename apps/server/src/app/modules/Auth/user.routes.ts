@@ -112,4 +112,7 @@ router.patch(
   auth(AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN, AuthRoles.CUSTOMER, AuthRoles.STAFF),
   AuthController.ChangeProfilePicture
 )
+
+// 14. Refresh token :
+router.post('/refresh-token', AuthController.refreshToken)
 export const authRoutes = router
