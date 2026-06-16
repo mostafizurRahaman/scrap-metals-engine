@@ -203,6 +203,22 @@ const adminLogin = catchAsync(async (req, res) => {
     data: result,
   })
 })
+
+/**
+ * 12. Refresh Token
+ */
+const refreshToken = catchAsync(async (req, res) => {
+  const refreshToken = req.cookies.refreshToken || req.body.refreshToken
+  const result = await AuthServices.refreshToken(refreshToken)
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Refresh token retrived successfully!',
+    data: result,
+  })
+})
+
 export const AuthController = {
   signUp,
   resendSignupOTP,
@@ -218,4 +234,5 @@ export const AuthController = {
   updateStatusByID,
   ChangeProfilePicture,
   adminLogin,
+  refreshToken,
 }
