@@ -693,6 +693,10 @@ const cancelOrderById = async (user: IUser, orderId: string) => {
 
 // 7. Start on the way:
 const startOnTheWay = async (user: IUser, orderId: string) => {
+  console.log({
+    user,
+    orderId,
+  })
   // 1. Check if the assignment exists and is accepted by this employee
   const assignment = await AssignedEmployee.findOne({
     order: orderId,
@@ -1246,6 +1250,7 @@ const getAdminAllOrder = async (query: TGetAllOrderQueryParamsType) => {
               email: 1,
               phoneNumber: 1,
               address: 1,
+              profileImage: 1,
             },
           },
         ],
@@ -1272,6 +1277,7 @@ const getAdminAllOrder = async (query: TGetAllOrderQueryParamsType) => {
               email: 1,
               phoneNumber: 1,
               address: 1,
+              profileImage: 1,
             },
           },
         ],
@@ -1292,11 +1298,13 @@ const getAdminAllOrder = async (query: TGetAllOrderQueryParamsType) => {
         customerEmail: '$customerDetails.email',
         customerPhoneNumber: '$customerDetails.phoneNumber',
         customerAddress: '$customerDetails.address',
+        customerProfileImage: '$customerDetails.profileImage',
         employeeId: '$employee._id',
         employeeName: '$employee.name',
         employeeEmail: '$employee.email',
         employeePhoneNumber: '$employee.phoneNumber',
         employeeAddress: '$employee.address',
+        employeeProfileImage: '$employee.profileImage',
       },
     },
     {
@@ -1364,6 +1372,7 @@ const getOrderById = async (id: string) => {
               email: 1,
               phoneNumber: 1,
               address: 1,
+              profileImage: 1,
             },
           },
         ],
@@ -1376,6 +1385,33 @@ const getOrderById = async (id: string) => {
       },
     },
     {
+      $lookup: {
+        localField: 'employee',
+        foreignField: '_id',
+        from: 'users',
+        as: 'employee',
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              email: 1,
+              phoneNumber: 1,
+              address: 1,
+              profileImage: 1,
+            },
+          },
+        ],
+      },
+    },
+
+    {
+      $unwind: {
+        path: '$employee',
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
       $addFields: {
         orderId: '$_id',
         customerId: '$customerDetails._id',
@@ -1383,12 +1419,20 @@ const getOrderById = async (id: string) => {
         customerEmail: '$customerDetails.email',
         customerPhone: '$customerDetails.phoneNumber',
         customerAddress: '$customerDetails.address',
+        customerProfileImage: { $ifNull: ['$customerDetails.profileImage', null] },
+        employeeId: '$employee._id',
+        employeeName: '$employee.name',
+        employeeEmail: '$employee.email',
+        employeePhoneNumber: '$employee.phoneNumber',
+        employeeAddress: '$employee.address',
+        employeeProfileImage: { $ifNull: ['$employee.profileImage', null] },
       },
     },
     {
       $project: {
         _id: 0,
         customerDetails: 0,
+        employee: 0,
       },
     },
   ])

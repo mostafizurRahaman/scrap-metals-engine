@@ -717,7 +717,7 @@ const getAssignedEmployeeById = async (user: IUser, id: string) => {
     },
     {
       $addFields: {
-        orderId: '$_id',
+        orderId: '$order',
         orderNumber: '$orderDetails.orderNumber',
         conversationId: { $ifNull: ['$conversationDetails._id', null] },
         orderType: '$orderDetails.orderType',
