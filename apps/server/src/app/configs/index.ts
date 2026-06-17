@@ -47,6 +47,11 @@ const envSchema = z.object({
   SUPER_ADMIN_PHONENUMBER: z.string(),
   OTP_EXPIRES_IN: z.string().transform(Number).default(5),
   OTP_DIGITS: z.string().transform(Number).default(6),
+
+  // FIREBASE CONFIG: 
+  FIREBASE_PROJECT_ID: z.string("Firebase Project ID is required"),
+  FIREBASE_CLIENT_EMAIL: z.string("Firebase Client Email is required").email(),
+  FIREBASE_PRIVATE_KEY: z.string("Firebase Private Key is required"),
 })
 
 // 3. Validate process.env
@@ -114,6 +119,12 @@ const configs = {
   otpSettings: {
     expiresIn: env.OTP_EXPIRES_IN,
     digits: env.OTP_DIGITS,
+  },
+
+  firebase: {
+    projectId: env.FIREBASE_PROJECT_ID,
+    clientEmail: env.FIREBASE_CLIENT_EMAIL,
+    privateKey: env.FIREBASE_PRIVATE_KEY,
   },
 } as const
 
