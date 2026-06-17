@@ -1,3 +1,3 @@
-export * from "./message.model"
-                          export * from "./message.interfaces"
-                          export * from "./message.constants"
+export * from './message.model'
+export * from './message.interfaces'
+export * from './message.constants'
