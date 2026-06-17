@@ -13,3 +13,4 @@ admin.initializeApp({
 
 
 export const firebaseAdmin = admin
+
