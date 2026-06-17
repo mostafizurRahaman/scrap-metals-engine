@@ -1,6 +1,7 @@
 import { FcmToken, type IUser } from '@repo/db'
 
 import type { TUpdateFcmTokenPayloadType } from './fcm-token.validations'
+import type { Types } from 'mongoose'
 
 // ?? Update an user fcm token
 const updateFcmToken = async (user: IUser, payload: TUpdateFcmTokenPayloadType) => {
@@ -28,7 +29,7 @@ const updateFcmToken = async (user: IUser, payload: TUpdateFcmTokenPayloadType) 
 }
 
 // ?? Get an user all fcm token:
-const getFcmTokensByUserId = async (userId: string) => {
+const getFcmTokensByUserId = async (userId: Types.ObjectId) => {
   const fcmTokens = await FcmToken.find({
     user: userId,
   })
