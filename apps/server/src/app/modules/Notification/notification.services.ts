@@ -5,7 +5,7 @@ import {
   User,
   type INotification,
 } from '@repo/db'
-import type { PipelineStage } from 'mongoose'
+import { Types, type PipelineStage } from 'mongoose'
 
 import type { TGetAllNotificationQueryParamsType } from './notification.validations'
 import { notificationUtils } from './notification.utils'
@@ -80,6 +80,25 @@ const createNotificationForAdmin = async (payload: Omit<INotification, 'receiver
   return Promise.all(adminNotifications)
 }
 
+const createNotificationForMultipleUser = async (
+  payload: Omit<INotification, 'receiver'>,
+  userIds: string[] = []
+) => {
+  if (!userIds?.length) return []
+
+  const userNotifications: Promise<unknown>[] = []
+
+  userIds.forEach((id) => {
+    const notificationPayload = {
+      ...payload,
+      receiver: new Types.ObjectId(id),
+    }
+    userNotifications.push(createNotification(notificationPayload))
+  })
+
+  return Promise.all(userNotifications)
+}
+
 const getAllNotification = async (query: TGetAllNotificationQueryParamsType) => {
   const {
     page = 1,
@@ -140,5 +159,6 @@ const getAllNotification = async (query: TGetAllNotificationQueryParamsType) => 
 export const notificationServices = {
   createNotification,
   createNotificationForAdmin,
+  createNotificationForMultipleUser,
   getAllNotification,
 }

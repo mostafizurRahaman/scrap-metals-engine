@@ -10,6 +10,7 @@ import {
   conversationType,
   ConversationUser,
   Message,
+  notificationType,
   OrderChat,
   OrderChatStatus,
   SupportChat,
@@ -21,6 +22,7 @@ import httpStatus from 'http-status'
 import { AppError, verifyToken, type IJwtUserPayload } from 'packages/shared/src'
 import configs from '@app/configs'
 import { conversationServices } from '@app/modules/Conversation/conversation.services'
+import { notificationServices } from '@app/modules/Notification/notification.services'
 // let io :
 let io: TServer | null = null
 
@@ -216,7 +218,6 @@ const registerSocketHandler = (io: TServer) => {
         conversation?._id
       )
 
-
       io.to(conversation?._id?.toString()).emit('participant_status', {
         success: true,
         message: 'Participants status retrived successfully',
@@ -228,8 +229,6 @@ const registerSocketHandler = (io: TServer) => {
 
     //  ? Join (Support) into channel:
     socket.on('join_support', async ({ conversationId }) => {
-      
-      
       // ? Check is conversation is a valid id?:
       if (!mongoose.isValidObjectId(conversationId)) {
         return socket.emit('socket_error', {
@@ -260,7 +259,6 @@ const registerSocketHandler = (io: TServer) => {
         conversation: conversation?._id,
       })
 
-      
       if (isAdminUser && !isMember) {
         await ConversationUser.create({
           conversation: conversation._id,
@@ -319,7 +317,6 @@ const registerSocketHandler = (io: TServer) => {
 
     // ? Send Message:
     socket.on('send_message', async ({ message, attachments, conversationId }) => {
-      console.log(user)
       // ? Check is conversation is a valid id?:
       if (!mongoose.isValidObjectId(conversationId)) {
         return socket.emit('socket_error', {
@@ -461,6 +458,13 @@ const registerSocketHandler = (io: TServer) => {
           conversation?._id
         )
 
+        const participantIds = allParticipants
+          .filter((p) => {
+            return p.userId.toString() !== user?._id?.toString()
+          })
+          .map((p) => p.userId.toString())
+          .filter(Boolean)
+
         io.to(conversation?._id.toString()).emit('new_message', {
           success: true,
           message: 'New Message',
@@ -472,6 +476,25 @@ const registerSocketHandler = (io: TServer) => {
           message: 'Participants status retrived successfully',
           data: allParticipants,
         })
+
+        try {
+          await notificationServices.createNotificationForMultipleUser(
+            {
+              sender: user?._id,
+              title: 'New Message',
+              message: '',
+              notificationType: notificationType.NEW_MESSAGE,
+              meta: {
+                conversationId: conversation?._id,
+                messageId: newMessage?._id,
+              },
+            },
+            participantIds
+          )
+        } catch (error) {
+          logger.error('Failed to send message notification.', error)
+        }
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
         await session.abortTransaction()
