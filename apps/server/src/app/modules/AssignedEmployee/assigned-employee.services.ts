@@ -8,6 +8,7 @@ import {
   DeliveryMethod,
   employeeAssignStatus,
   employeeAssignStatusValues,
+  notificationType,
   Order,
   OrderChat,
   OrderChatStatus,
@@ -28,6 +29,8 @@ import type {
   TCancelAssignedEmployeeByIdPayload,
 } from './assigned-employee.validations'
 import mongoose, { Types } from 'mongoose'
+import { notificationServices } from '../Notification/notification.services'
+import { logger } from '@app/libs/logger'
 
 // ?. 1 Assign employee:
 const createAssignedEmployee = async (user: IUser, payload: TCreateAssignedEmployeePayloadType) => {
@@ -139,6 +142,23 @@ const createAssignedEmployee = async (user: IUser, payload: TCreateAssignedEmplo
     )
 
     await session.commitTransaction()
+
+    try {
+      await notificationServices.createNotification({
+        receiver: assignedEmployee?.employee,
+        sender: user?._id,
+        title: 'New Assignment Received',
+        message: `You have been assigned to order #${updatedOrder.orderNumber}. Please review the pickup details and accept the task.`,
+        notificationType: notificationType.ORDER_ASSIGNED,
+        meta: {
+          assignmentId: assignedEmployee._id,
+          orderId: updatedOrder?._id,
+          orderNumber: updatedOrder?.orderNumber,
+        },
+      })
+    } catch (error) {
+      logger.error('Failed to send order cancellation notification to admins', error)
+    }
 
     return assignedEmployee
   } catch (err: any) {
@@ -254,6 +274,22 @@ const cancelAssignmentById = async (
     )
 
     await session.commitTransaction()
+
+    try {
+      await notificationServices.createNotificationForAdmin({
+        sender: user?._id,
+        title: 'Assignment Declined',
+        message: `Employee ${user.name} has declined the assignment for order #${updatedOrder.orderNumber}. Reason: ${payload.reason || 'No reason provided'}. Please re-assign another employee.`,
+        notificationType: notificationType.ORDER_ASSIGNED,
+        meta: {
+          orderId: updatedOrder?._id,
+          assignmentId: cancelledAssignment._id,
+          orderNumber: updatedOrder?.orderNumber,
+        },
+      })
+    } catch (error) {
+      logger.error('Failed to send assignment cancellation notification to admins', error)
+    }
     return cancelledAssignment
   } catch (err: any) {
     await session.abortTransaction()
@@ -411,6 +447,41 @@ const acceptAssignmentById = async (user: IUser, assignedId: string) => {
     }
 
     await session.commitTransaction()
+    try {
+      await notificationServices.createNotificationForAdmin({
+        sender: user?._id,
+        title: 'Assignment Accepted',
+        message: `Staff member ${user.name} has accepted the assignment for order #${order.orderNumber}.`,
+        notificationType: notificationType.ORDER_ASSIGNED,
+        meta: {
+          assignementId: acceptedAssignment._id,
+          orderId: order?._id,
+          orderNumber: order?.orderNumber,
+          employeeId: order.employee,
+        },
+      })
+    } catch (error) {
+      logger.error('Failed to send assignment acceptance notification to admins', error)
+    }
+
+    try {
+      await notificationServices.createNotification({
+        receiver: order.customer,
+        sender: user?._id,
+        title: 'Staff Assigned to Your Order',
+        message: `Great news! Our team member ${user.name} has been assigned to handle your request #${order.orderNumber}.`,
+        notificationType: notificationType.ORDER_ASSIGNED,
+        meta: {
+          assignementId: acceptedAssignment._id,
+          orderId: order?._id,
+          orderNumber: order?.orderNumber,
+          employeeId: order.employee,
+        },
+      })
+    } catch (error) {
+      logger.error('Failed to send assignment notification to customer', error)
+    }
+
     return acceptedAssignment
   } catch (err: any) {
     await session.abortTransaction()

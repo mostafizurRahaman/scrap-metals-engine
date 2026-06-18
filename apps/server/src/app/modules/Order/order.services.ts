@@ -881,6 +881,38 @@ const startOnTheWay = async (user: IUser, orderId: string) => {
     )
 
     await session.commitTransaction()
+    try {
+      await notificationServices.createNotification({
+        receiver: updatedOrder.customer,
+        sender: user?._id,
+        title: 'Heading to Your Location',
+        message: `Our team member ${user.name} is on the way for your order #${updatedOrder.orderNumber}. Please be ready at the pickup address.`,
+        notificationType: notificationType.ORDER_ON_THE_WAY,
+        meta: {
+          orderId: updatedOrder?._id,
+          orderNumber: updatedOrder?.orderNumber,
+          employeeId: updatedOrder.employee,
+        },
+      })
+    } catch (error) {
+      logger.error('Failed to send "On the Way" notification to customer', error)
+    }
+
+    try {
+      await notificationServices.createNotificationForAdmin({
+        sender: user?._id,
+        title: 'Trip Started',
+        message: `Employee ${user.name} is now on the way for order #${updatedOrder.orderNumber}.`,
+        notificationType: notificationType.ORDER_ON_THE_WAY,
+        meta: {
+          orderId: updatedOrder?._id,
+          orderNumber: updatedOrder?.orderNumber,
+          employeeId: updatedOrder.employee,
+        },
+      })
+    } catch (error) {
+      logger.error('Failed to send trip start notification to admins', error)
+    }
     return updatedOrder
   } catch (err: any) {
     await session.abortTransaction()
@@ -965,6 +997,41 @@ const receiveOrder = async (user: IUser, orderId: string) => {
     )
 
     await session.commitTransaction()
+
+    try {
+      await notificationServices.createNotification({
+        receiver: updatedOrder.customer,
+        sender: user?._id,
+        title: 'Items Received Successfully',
+        message: `Your items for order #${updatedOrder.orderNumber} have been officially received by our staff member ${user.name}.`,
+        notificationType: notificationType.ORDER_RECEIVED,
+        meta: {
+          orderId: updatedOrder?._id,
+          orderNumber: updatedOrder?.orderNumber,
+          employeeId: updatedOrder.employee,
+          type: 'order_received_customer',
+        },
+      })
+    } catch (error) {
+      logger.error('Failed to send received notification to customer', error)
+    }
+
+    try {
+      await notificationServices.createNotificationForAdmin({
+        sender: user?._id,
+        title: 'Order Received from Customer.',
+        message: `Staff member ${user.name} has marked order #${updatedOrder.orderNumber} as received. Collection complete.`,
+        notificationType: notificationType.ORDER_RECEIVED,
+        meta: {
+          orderId: updatedOrder?._id,
+          orderNumber: updatedOrder?.orderNumber,
+          employeeId: updatedOrder.employee,
+          type: 'order_received_admin',
+        },
+      })
+    } catch (error) {
+      logger.error('Failed to send received notification to admins', error)
+    }
     return updatedOrder
   } catch (err: any) {
     await session.abortTransaction()
@@ -1030,6 +1097,39 @@ const completeDropoffOrder = async (user: IUser, orderId: string) => {
     )
 
     await session.commitTransaction()
+
+    try {
+      await notificationServices.createNotification({
+        receiver: updatedOrder.customer,
+        sender: user?._id,
+        title: 'Order Completed Successfully',
+        message: `Success! Your drop-off order #${updatedOrder.orderNumber} has been finalized and completed. Thank you for choosing our service.`,
+        notificationType: notificationType.ORDER_COMPLETED,
+        meta: {
+          orderId: updatedOrder?._id,
+          orderNumber: updatedOrder?.orderNumber,
+          type: 'dropoff_completed_customer',
+        },
+      })
+    } catch (error) {
+      logger.error('Failed to send drop-off completion notification to customer', error)
+    }
+
+    try {
+      await notificationServices.createNotificationForAdmin({
+        sender: user?._id,
+        title: 'Drop-off Completed',
+        message: `Admin ${user.name} has completed the drop-off process for order #${updatedOrder.orderNumber}.`,
+        notificationType: notificationType.ORDER_COMPLETED,
+        meta: {
+          orderId: updatedOrder?._id,
+          orderNumber: updatedOrder?.orderNumber,
+          type: 'dropoff_completed_admin',
+        },
+      })
+    } catch (error) {
+      logger.error('Failed to send drop-off completion notification to admins', error)
+    }
     return updatedOrder
   } catch (err: any) {
     await session.abortTransaction()
@@ -1142,6 +1242,41 @@ const completePickupOrder = async (user: IUser, orderId: string) => {
     )
 
     await session.commitTransaction()
+
+    try {
+      await notificationServices.createNotification({
+        receiver: updatedOrder.customer,
+        sender: user?._id,
+        title: 'Pickup Completed!',
+        message: `Your pickup request #${updatedOrder.orderNumber} has been successfully completed by our team. Thank you for your business!`,
+        notificationType: notificationType.ORDER_COMPLETED,
+        meta: {
+          employeeId: updatedOrder.employee,
+          orderId: updatedOrder?._id,
+          orderNumber: updatedOrder?.orderNumber,
+          type: 'pickup_completed_customer',
+        },
+      })
+    } catch (error) {
+      logger.error('Failed to send pickup completion notification to customer', error)
+    }
+
+    try {
+      await notificationServices.createNotificationForAdmin({
+        sender: user?._id,
+        title: 'Staff Task Finished',
+        message: `Staff member ${user.name} has successfully completed the pickup for order #${updatedOrder.orderNumber}. The order is now marked as COMPLETED.`,
+        notificationType: notificationType.ORDER_COMPLETED,
+        meta: {
+          employeeId: updatedOrder.employee,
+          orderId: updatedOrder?._id,
+          orderNumber: updatedOrder?.orderNumber,
+          type: 'pickup_completed_admin',
+        },
+      })
+    } catch (error) {
+      logger.error('Failed to send pickup completion notification to admins', error)
+    }
     return updatedOrder
   } catch (err: any) {
     await session.abortTransaction()

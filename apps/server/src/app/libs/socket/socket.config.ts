@@ -216,6 +216,7 @@ const registerSocketHandler = (io: TServer) => {
         conversation?._id
       )
 
+
       io.to(conversation?._id?.toString()).emit('participant_status', {
         success: true,
         message: 'Participants status retrived successfully',
@@ -227,6 +228,8 @@ const registerSocketHandler = (io: TServer) => {
 
     //  ? Join (Support) into channel:
     socket.on('join_support', async ({ conversationId }) => {
+      
+      
       // ? Check is conversation is a valid id?:
       if (!mongoose.isValidObjectId(conversationId)) {
         return socket.emit('socket_error', {
@@ -257,6 +260,7 @@ const registerSocketHandler = (io: TServer) => {
         conversation: conversation?._id,
       })
 
+      
       if (isAdminUser && !isMember) {
         await ConversationUser.create({
           conversation: conversation._id,
