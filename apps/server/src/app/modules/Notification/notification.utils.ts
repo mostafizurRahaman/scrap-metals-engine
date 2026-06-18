@@ -3,7 +3,7 @@ import { fcmTokenServices } from '../FcmToken/fcm-token.services'
 import { firebaseAdmin } from '@app/configs/firebase'
 import type { BatchResponse } from 'firebase-admin/messaging'
 
-const sendPushNotificaiton = async (notification: INotification) => {
+const sendPushNotification = async (notification: INotification) => {
   const { receiver, sender, title, message, meta } = notification
 
   // ?? Get fmc tokens for receiver:
@@ -12,7 +12,7 @@ const sendPushNotificaiton = async (notification: INotification) => {
   // ?? Retrived sender:
   const senderUser = await User.findById(sender)
 
-  if (receiverFcmTokens.length) return
+  if (!receiverFcmTokens.length) return
 
   const notificationResponse = await firebaseAdmin.messaging().sendEachForMulticast({
     tokens: receiverFcmTokens,
@@ -52,5 +52,5 @@ const removeInvalidTokens = async (response: BatchResponse, tokens: string[]) =>
 }
 
 export const notificationUtils = {
-  sendPushNotificaiton,
+  sendPushNotification,
 }

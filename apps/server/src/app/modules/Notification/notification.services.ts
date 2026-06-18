@@ -1,4 +1,10 @@
-import { Notification, notificationSearchableFields, User, type INotification } from '@repo/db'
+import {
+  AuthRoles,
+  Notification,
+  notificationSearchableFields,
+  User,
+  type INotification,
+} from '@repo/db'
 import type { PipelineStage } from 'mongoose'
 
 import type { TGetAllNotificationQueryParamsType } from './notification.validations'
@@ -29,17 +35,17 @@ const createNotification = async (payload: INotification) => {
   }
 
   const result = await Notification.create({
-    receiver: receiver?._id,
+    receiver: receiver._id,
     sender: sender._id,
     title,
     message,
     notificationType,
-    meta,
+    meta: notificationMeta,
   })
 
   // ?? Call push notification function:
-  await notificationUtils.sendPushNotificaiton({
-    receiver: receiver?._id,
+  await notificationUtils.sendPushNotification({
+    receiver: receiver._id,
     sender: sender._id,
     title,
     message,
@@ -48,6 +54,31 @@ const createNotification = async (payload: INotification) => {
   })
 
   return result
+}
+
+const createNotificationForAdmin = async (payload: Omit<INotification, 'receiver'>) => {
+  const admins = await User.find({
+    role: {
+      $in: [AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN],
+    },
+  }).select({
+    _id: 1,
+  })
+
+  if (!admins?.length) return []
+
+  const adminNotifications: Promise<unknown>[] = []
+
+  admins.forEach((admin) => {
+    const notificationPayload = {
+      ...payload,
+      receiver: admin._id,
+    }
+
+    adminNotifications.push(createNotification(notificationPayload))
+  })
+
+  return Promise.all(adminNotifications)
 }
 
 const getAllNotification = async (query: TGetAllNotificationQueryParamsType) => {
@@ -109,5 +140,6 @@ const getAllNotification = async (query: TGetAllNotificationQueryParamsType) => 
 
 export const notificationServices = {
   createNotification,
+  createNotificationForAdmin,
   getAllNotification,
 }
