@@ -1,5 +1,6 @@
 import { Schema, model } from 'mongoose'
 import type { INotificationDoc } from './notification.interfaces'
+import { notificationTypeValues } from './notification.constants'
 
 const notificationSchema = new Schema<INotificationDoc>(
   {
@@ -20,6 +21,10 @@ const notificationSchema = new Schema<INotificationDoc>(
     message: {
       type: String,
       required: true,
+    },
+    notificationType: {
+      type: String,
+      enum: notificationTypeValues,
     },
     meta: {
       type: Schema.Types.Mixed,

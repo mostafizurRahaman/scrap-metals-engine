@@ -1,28 +1,51 @@
-import { Notification, notificationSearchableFields } from '@repo/db'
-import httpStatus from 'http-status'
-import { AppError } from '@repo/shared'
+import { Notification, notificationSearchableFields, User, type INotification } from '@repo/db'
 import type { PipelineStage } from 'mongoose'
 
-import type {
-  TCreateNotificationPayloadType,
-  TUpdateNotificationPayloadType,
-  TGetAllNotificationQueryParamsType,
-} from './notification.validations'
+import type { TGetAllNotificationQueryParamsType } from './notification.validations'
+import { notificationUtils } from './notification.utils'
 
-const createNotification = async (payload: TCreateNotificationPayloadType) => {
-  const result = await Notification.create(payload)
-  return result
-}
+const createNotification = async (payload: INotification) => {
+  const { receiver: receiverId, sender: senderId, title, message, notificationType, meta } = payload
 
+  // ? Retrived receiver:
+  const receiver = await User.findOne({ _id: receiverId })
 
+  if (!receiver) return
 
+  // ? Retrived receiver:
+  const sender = await User.findOne({ _id: senderId })
 
-const updateNotification = async (id: string, payload: TUpdateNotificationPayloadType) => {
-  const result = await Notification.findOneAndUpdate({ _id: id }, { $set: payload }, { new: true })
+  if (!sender) return
 
-  if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Notification not found')
+  // ?? Prepare notification meta:
+  const notificationMeta = {
+    ...meta,
+    receiverId: receiver._id,
+    receiverName: receiver.name,
+    receiverProfileImg: receiver.profileImage || null,
+    senderId: sender._id,
+    senderName: sender.name,
+    senderProfileImg: sender.profileImage || null,
   }
+
+  const result = await Notification.create({
+    receiver: receiver?._id,
+    sender: sender._id,
+    title,
+    message,
+    notificationType,
+    meta,
+  })
+
+  // ?? Call push notification function:
+  await notificationUtils.sendPushNotificaiton({
+    receiver: receiver?._id,
+    sender: sender._id,
+    title,
+    message,
+    notificationType,
+    meta: notificationMeta,
+  })
 
   return result
 }
@@ -84,30 +107,7 @@ const getAllNotification = async (query: TGetAllNotificationQueryParamsType) => 
   }
 }
 
-const getNotificationById = async (id: string) => {
-  const result = await Notification.findById(id)
-
-  if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Notification not found')
-  }
-
-  return result
-}
-
-const deleteNotificationById = async (id: string) => {
-  const result = await Notification.findOneAndDelete({ _id: id })
-
-  if (!result) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Notification not found')
-  }
-
-  return result
-}
-
 export const notificationServices = {
   createNotification,
-  updateNotification,
   getAllNotification,
-  getNotificationById,
-  deleteNotificationById,
 }

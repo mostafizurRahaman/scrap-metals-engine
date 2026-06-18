@@ -1,7 +1,7 @@
 import { FcmToken, type IUser } from '@repo/db'
 
 import type { TUpdateFcmTokenPayloadType } from './fcm-token.validations'
-import type { Types } from 'mongoose'
+import type { DeleteResult, Types } from 'mongoose'
 
 // ?? Update an user fcm token
 const updateFcmToken = async (user: IUser, payload: TUpdateFcmTokenPayloadType) => {
@@ -39,12 +39,24 @@ const getFcmTokensByUserId = async (userId: Types.ObjectId) => {
     })
     .lean()
 
-  const allTokens = fcmTokens.filter((token) => token.token)
+  const allTokens = fcmTokens.map((token) => token.token)
 
   return allTokens
+}
+
+// ?? Delete FCM Token by tokens:
+const deleteFcmTokens = async (tokens: string[]): Promise<DeleteResult> => {
+  const deletedTokens = await FcmToken.deleteMany({
+    token: {
+      $in: tokens,
+    },
+  })
+
+  return deletedTokens
 }
 
 export const fcmTokenServices = {
   updateFcmToken,
   getFcmTokensByUserId,
+  deleteFcmTokens,
 }

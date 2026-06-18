@@ -1,10 +1,12 @@
 import { Document, Types } from 'mongoose'
+import type { TNotificationType } from './notification.constants'
 
 export interface INotification {
   receiver: Types.ObjectId
   sender: Types.ObjectId
   title: string
   message: string
+  notificationType: TNotificationType
   meta: Record<string, unknown>
 }
 
