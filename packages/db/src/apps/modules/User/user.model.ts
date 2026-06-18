@@ -77,6 +77,9 @@ const userSchema = new Schema<IUser, IUserModel>(
     blockedAt: {
       type: Date,
     },
+    lastReadAt: {
+      type: Date,
+    },
     deletedAt: {
       type: Date,
     },

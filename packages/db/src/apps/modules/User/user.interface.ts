@@ -31,6 +31,7 @@ export interface IUser extends Document {
   blockedAt?: Date
   deletedAt?: Date
   passwordChangedAt?: Date
+  lastReadAt?: Date
   createdAt: Date
   updatedAt: Date
 }
