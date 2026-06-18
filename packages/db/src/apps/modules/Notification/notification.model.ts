@@ -26,6 +26,11 @@ const notificationSchema = new Schema<INotificationDoc>(
       type: String,
       enum: notificationTypeValues,
     },
+    isRead: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
     meta: {
       type: Schema.Types.Mixed,
       required: true,

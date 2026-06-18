@@ -1,14 +1,17 @@
+import httpStatus from 'http-status'
 import {
   AuthRoles,
   Notification,
   notificationSearchableFields,
   User,
   type INotification,
+  type IUser,
 } from '@repo/db'
 import { Types, type PipelineStage } from 'mongoose'
 
 import type { TGetAllNotificationQueryParamsType } from './notification.validations'
 import { notificationUtils } from './notification.utils'
+import { AppError, formatQuery, type BaseQueryParams } from '@repo/shared'
 
 const createNotification = async (payload: INotification) => {
   const { receiver: receiverId, sender: senderId, title, message, notificationType, meta } = payload
@@ -99,27 +102,66 @@ const createNotificationForMultipleUser = async (
   return Promise.all(userNotifications)
 }
 
-const getAllNotification = async (query: TGetAllNotificationQueryParamsType) => {
+const markedAsRead = async (user: IUser, notificationId: string) => {
+  const notification = await Notification.findOne({
+    _id: notificationId,
+    receiver: user?._id,
+  })
+
+  // ? Check is the notification exists?:
+  if (!notification) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Notification not found!')
+  }
+
+  notification.isRead = true
+
+  await notification.save()
+
+  return notification
+}
+
+const markedAsReadAll = async (user: IUser) => {
+  user.lastReadAt = new Date()
+
+  await user.save()
+
+  return {
+    message: 'All message marked as read',
+  }
+}
+
+const getAllNotification = async (user: IUser, query: TGetAllNotificationQueryParamsType) => {
   const {
     page = 1,
     limit = 10,
     searchTerm,
     sortOrder = 'desc',
     sortBy = 'createdAt',
+    dateFilter,
+    skip,
     fromDate,
     toDate,
-  } = query
+  } = formatQuery(query as BaseQueryParams)
 
-  const skip = (page - 1) * limit
-  const pipeline: PipelineStage[] = []
+  const pipeline: PipelineStage[] = [
+    {
+      $match: {
+        receiver: user?._id,
+      },
+    },
+  ]
 
   if (fromDate || toDate) {
-    const dateFilter: Record<string, unknown> = {}
-    if (fromDate) dateFilter.$gte = new Date(fromDate)
-    if (toDate) dateFilter.$lte = new Date(toDate)
-
     pipeline.push({ $match: { createdAt: dateFilter } })
   }
+
+  pipeline.push({
+    $addFields: {
+      isRead: {
+        $cond: [{ $lte: ['$createdAt', user?.lastReadAt] }, true, false],
+      },
+    },
+  })
 
   if (searchTerm) {
     pipeline.push({
@@ -161,4 +203,6 @@ export const notificationServices = {
   createNotificationForAdmin,
   createNotificationForMultipleUser,
   getAllNotification,
+  markedAsRead,
+  markedAsReadAll,
 }

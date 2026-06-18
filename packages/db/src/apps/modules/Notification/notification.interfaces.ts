@@ -7,6 +7,7 @@ export interface INotification {
   title: string
   message: string
   notificationType: TNotificationType
+  isRead?: boolean
   meta: Record<string, unknown>
 }
 
