@@ -74,7 +74,6 @@ const createNotificationForAdmin = async (payload: Omit<INotification, 'receiver
       ...payload,
       receiver: admin._id,
     }
-
     adminNotifications.push(createNotification(notificationPayload))
   })
 

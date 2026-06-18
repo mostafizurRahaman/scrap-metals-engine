@@ -1,3 +1,4 @@
+import { Body } from '@react-email/components'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   AssignedEmployee,
@@ -7,6 +8,7 @@ import {
   employeeAssignStatus,
   Metal,
   MetalOrder,
+  notificationType,
   Order,
   OrderChatStatus,
   OrderHistory,
@@ -29,6 +31,8 @@ import type {
 } from './order.validations'
 import { generateUniqueOrderNumber } from './order.utils'
 import { uploadMultipleFileToS3 } from '@repo/media-hub'
+import { notificationServices } from '../Notification/notification.services'
+import { logger } from '@app/libs/logger'
 
 // ? 1. Create vehicle
 const createVehicleOrder = async (
@@ -152,6 +156,22 @@ const createVehicleOrder = async (
     )
 
     await session.commitTransaction()
+
+    try {
+      await notificationServices.createNotificationForAdmin({
+        sender: user?._id,
+        title: 'New Order Received',
+        message: `A new order ${order.orderNumber} is waiting for quote.`,
+        notificationType: notificationType.NEW_ORDER,
+        meta: {
+          orderId: order?._id,
+          orderNumber: order?.orderNumber,
+          orderPlacedAt: order?.createdAt,
+        },
+      })
+    } catch (error) {
+      logger.info('Failed to send notification', error)
+    }
 
     return order
   } catch (err: any) {
@@ -326,6 +346,22 @@ const createMetalOrder = async (
 
     await session.commitTransaction()
 
+    try {
+      await notificationServices.createNotificationForAdmin({
+        sender: user?._id,
+        title: 'New Order Received',
+        message: `A new order ${newOrder.orderNumber} is waiting for quote.`,
+        notificationType: notificationType.NEW_ORDER,
+        meta: {
+          orderId: newOrder?._id,
+          orderNumber: newOrder?.orderNumber,
+          orderPlacedAt: newOrder?.createdAt,
+        },
+      })
+    } catch (error) {
+      logger.info('Failed to send notification.', error)
+    }
+
     return newOrder
   } catch (err: any) {
     await session.abortTransaction()
@@ -431,6 +467,23 @@ const sendVehicleQoute = async (
 
     await session.commitTransaction()
 
+    try {
+      await notificationServices.createNotification({
+        receiver: updatedOrder.customer,
+        sender: user?._id,
+        title: 'Quote Received',
+        message: `Your order #${updatedOrder.orderNumber} has been quoted for $${qoutedPrice}. Please review and accept.`,
+        notificationType: notificationType.QOUTE_REQUEST,
+        meta: {
+          orderId: updatedOrder?._id,
+          orderNumber: updatedOrder?.orderNumber,
+          type: notificationType.QOUTE_REQUEST,
+        },
+      })
+    } catch (notificationError) {
+      logger.error('Notification failed for quote:', notificationError)
+    }
+
     return updatedOrder
   } catch (err: any) {
     await session.abortTransaction()
@@ -531,6 +584,39 @@ const sendMetalQoute = async (
 
     await session.commitTransaction()
 
+    try {
+      let notificationTitle = ''
+      let notificationMessage = ''
+
+      if (updatedOrder.status === OrderStatus.QOUTED) {
+        notificationTitle = 'Custom Quote Received'
+        notificationMessage = `You've received a custom quote of $${qoutedPrice} for your metal order #${updatedOrder.orderNumber}. Please review and accept.`
+      } else if (updatedOrder.status === OrderStatus.ACCEPTED) {
+        notificationTitle = 'Order Accepted'
+        notificationMessage = `Great news! Your metal order #${updatedOrder.orderNumber} has been accepted. The total amount is $${totalPrice}.`
+      }
+
+      if (notificationTitle) {
+        await notificationServices.createNotification({
+          receiver: updatedOrder.customer,
+          sender: user?._id,
+          title: notificationTitle,
+          message: notificationMessage,
+          notificationType:
+            updatedOrder.status === OrderStatus.QOUTED
+              ? notificationType.QOUTE_REQUEST
+              : notificationType.ORDER_ACCEPTED,
+          meta: {
+            orderId: updatedOrder?._id,
+            orderNumber: updatedOrder?.orderNumber,
+            status: updatedOrder.status,
+          },
+        })
+      }
+    } catch (notificationError) {
+      logger.error('Notification failed for metal quote:', notificationError)
+    }
+
     return updatedOrder
   } catch (err: any) {
     await session.abortTransaction()
@@ -609,6 +695,23 @@ const acceptQouteRequest = async (user: IUser, orderId: string) => {
 
     await session.commitTransaction()
 
+    try {
+      await notificationServices.createNotificationForAdmin({
+        sender: user?._id,
+        title: 'Quote Accepted',
+        message: `Quote for order #${updatedOrder.orderNumber} was accepted by ${user.name}. ${updatedOrder.deliveryType === DeliveryMethod.PICKUP && 'Ready for staff assignment.'} `,
+        notificationType: notificationType.ORDER_ACCEPTED,
+        meta: {
+          orderId: updatedOrder?._id,
+          orderNumber: updatedOrder?.orderNumber,
+          orderPlacedAt: updatedOrder?.createdAt,
+          type: 'quote_accepted',
+        },
+      })
+    } catch (error) {
+      logger.error('Failed to send quote acceptance notification to admins', error)
+    }
+
     return updatedOrder
   } catch (err: any) {
     await session.abortTransaction()
@@ -682,6 +785,22 @@ const cancelOrderById = async (user: IUser, orderId: string) => {
 
     await session.commitTransaction()
 
+    try {
+      await notificationServices.createNotificationForAdmin({
+        sender: user?._id,
+        title: 'Order Cancelled',
+        message: `Order #${updatedOrder.orderNumber} has been cancelled by ${user.name}.`,
+        notificationType: notificationType.ORDER_CANCELLED,
+        meta: {
+          orderId: updatedOrder?._id,
+          orderNumber: updatedOrder?.orderNumber,
+          type: 'order_cancelled',
+        },
+      })
+    } catch (error) {
+      logger.error('Failed to send order cancellation notification to admins', error)
+    }
+
     return updatedOrder
   } catch (err: any) {
     await session.abortTransaction()
@@ -693,10 +812,6 @@ const cancelOrderById = async (user: IUser, orderId: string) => {
 
 // 7. Start on the way:
 const startOnTheWay = async (user: IUser, orderId: string) => {
-  console.log({
-    user,
-    orderId,
-  })
   // 1. Check if the assignment exists and is accepted by this employee
   const assignment = await AssignedEmployee.findOne({
     order: orderId,
