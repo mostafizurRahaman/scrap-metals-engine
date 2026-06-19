@@ -156,10 +156,61 @@ const getAllNotification = async (user: IUser, query: TGetAllNotificationQueryPa
   }
 
   pipeline.push({
+    $lookup: {
+      from: 'users',
+      localField: 'sender',
+      foreignField: '_id',
+      as: 'senderDetails',
+    },
+  })
+  pipeline.push({
+    $lookup: {
+      from: 'users',
+      localField: 'receiver',
+      foreignField: '_id',
+      as: 'receiverDetails',
+    },
+  })
+
+  pipeline.push({
+    $unwind: {
+      path: '$senderDetails',
+      preserveNullAndEmptyArrays: true,
+    },
+  })
+
+  pipeline.push({
+    $unwind: {
+      path: '$receiverDetails',
+      preserveNullAndEmptyArrays: true,
+    },
+  })
+
+  pipeline.push({
     $addFields: {
       isRead: {
         $cond: [{ $lte: ['$createdAt', user?.lastReadAt] }, true, false],
       },
+    },
+  })
+
+  pipeline.push({
+    $project: {
+      _id: 0,
+      notificationId: '$_id',
+      title: '$title',
+      message: '$message',
+      notificationType: '$notificationType',
+      receiverId: '$receiver',
+      receiverName: '$receiverDetails.name',
+      receiverEmail: '$receiverDetails.email',
+      receiverProfileImage: { $ifNull: ['$receiverDetails.profileImage', null] },
+      senderId: '$receiver',
+      senderName: '$senderDetails.name',
+      senderEmail: '$senderDetails.email',
+      senderProfileImage: { $ifNull: ['$senderDetails.profileImage', null] },
+      isRead: '$isRead',
+      meta: '$meta',
     },
   })
 

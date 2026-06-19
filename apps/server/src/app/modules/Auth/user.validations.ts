@@ -94,6 +94,12 @@ const updateUserStatusById = z.object({
   }),
 })
 
+const logoutSchema = z.object({
+  body: z.object({
+    fcmToken: requiredString('Token'),
+  }),
+})
+
 export const AuthValidations = {
   signUserSchema,
   loginSchema,
@@ -106,6 +112,7 @@ export const AuthValidations = {
   resetPasswordSchema,
   updateProfileData,
   updateUserStatusById,
+  logoutSchema,
 }
 
 export type ISignUpSchemaType = z.infer<typeof signUserSchema.shape.body>
@@ -119,3 +126,4 @@ export type IResetPasswordOtpQueryType = z.infer<typeof resetPasswordSchema.shap
 export type IChangedPasswordType = z.infer<typeof changedPasswordSchema.shape.body>
 export type IUpdateProfilePayloadType = z.infer<typeof updateProfileData.shape.body>
 export type IUpdateUserStatusPayload = z.infer<typeof updateUserStatusById.shape.body>
+export type ILogoutPayload = z.infer<typeof logoutSchema.shape.body>

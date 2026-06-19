@@ -115,4 +115,7 @@ router.patch(
 
 // 14. Refresh token :
 router.post('/refresh-token', AuthController.refreshToken)
+
+// 15. Logged out :
+router.post('/log-out', auth(), AuthController.logOut)
 export const authRoutes = router
