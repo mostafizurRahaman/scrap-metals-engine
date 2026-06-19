@@ -231,7 +231,7 @@ const logOut = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
-    message: 'Refresh token retrived successfully!',
+    message: 'User has logged out successfully.!',
     data: result,
   })
 })
