@@ -955,8 +955,8 @@ const refreshToken = async (refreshToken: string) => {
    * 4.1. Token invalidation check
    */
   if (
-    user.passwordChangedAt &&
-    (await User.isJwtIssuedBeforeLoggedout(user.passwordChangedAt, decoded.iat as number))
+    user.loggedOutAt &&
+    (await User.isJwtIssuedBeforeLoggedout(user.loggedOutAt, decoded.iat as number))
   ) {
     throw new AppError(httpStatus.UNAUTHORIZED, 'Token has expired. Please log in again')
   }
