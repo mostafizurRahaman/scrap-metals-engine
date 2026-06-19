@@ -80,6 +80,9 @@ const userSchema = new Schema<IUser, IUserModel>(
     lastReadAt: {
       type: Date,
     },
+    loggedOutAt: {
+      type: Date,
+    },
     deletedAt: {
       type: Date,
     },
@@ -149,6 +152,22 @@ userSchema.statics.isJwtIssuedBeforePasswordChanged = function (
 
   // Compare
   return jwtIssuedTime < passwordChangedAt.getTime()
+}
+
+// 9. Compare is jwt issued before password changed ?
+userSchema.statics.isJwtIssuedBeforeLoggedout = function (
+  loggedOutAt: Date,
+  jwtIssuedTimestamp: number
+): boolean {
+  if (!loggedOutAt) {
+    return false
+  }
+
+  // Convert to milliseconds
+  const jwtIssuedTime = jwtIssuedTimestamp * 1000
+
+  // Compare
+  return jwtIssuedTime < loggedOutAt.getTime()
 }
 
 userSchema.pre('aggregate', function () {

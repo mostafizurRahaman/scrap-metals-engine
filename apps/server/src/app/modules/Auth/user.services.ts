@@ -4,6 +4,7 @@ import type {
   IChangedPasswordType,
   IForgotPasswordType,
   ILoginType,
+  ILogoutPayload,
   IResendSignupType,
   IResetPasswordOtpType,
   ISignUpSchemaType,
@@ -885,7 +886,6 @@ const adminLogin = async (payload: ILoginType) => {
   }
 }
 
-
 const refreshToken = async (refreshToken: string) => {
   if (!refreshToken) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Refresh token is required!')
@@ -960,6 +960,15 @@ const refreshToken = async (refreshToken: string) => {
   return { accessToken }
 }
 
+const logOut = async (user: IUser, payload: ILogoutPayload) => {
+  const { token } = payload
+
+  // 
+
+
+
+}
+
 export const AuthServices = {
   signUp,
   resendSignupOTP,
@@ -975,5 +984,6 @@ export const AuthServices = {
   updateUserStatusById,
   adminLogin,
   ChangeProfilePicture,
-  refreshToken
+  refreshToken,
+  logOut,
 }

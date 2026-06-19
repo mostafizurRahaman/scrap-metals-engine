@@ -219,6 +219,23 @@ const refreshToken = catchAsync(async (req, res) => {
   })
 })
 
+/**
+ * 13. Refresh Token
+ */
+const logOut = catchAsync(async (req, res) => {
+  const user = await getUserFromRequest(req)
+  const result = await AuthServices.logOut(user, req.body)
+
+  res.clearCookie('refreshToken')
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: 'Refresh token retrived successfully!',
+    data: result,
+  })
+})
+
 export const AuthController = {
   signUp,
   resendSignupOTP,
@@ -235,4 +252,5 @@ export const AuthController = {
   ChangeProfilePicture,
   adminLogin,
   refreshToken,
+  logOut,
 }

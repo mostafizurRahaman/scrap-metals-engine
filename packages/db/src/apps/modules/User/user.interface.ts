@@ -32,6 +32,7 @@ export interface IUser extends Document {
   deletedAt?: Date
   passwordChangedAt?: Date
   lastReadAt?: Date
+  loggedOutAt?: Date
   createdAt: Date
   updatedAt: Date
 }
@@ -45,6 +46,10 @@ export interface IUserModel extends Model<IUser> {
   isUserUnderReview(user: IUser): Promise<boolean>
   isUserStatusPending(user: IUser): Promise<boolean>
   isJwtIssuedBeforePasswordChanged: (
+    passwordChangedAt: Date,
+    jwtIssuedTimestamps: number
+  ) => Promise<boolean>
+  isJwtIssuedBeforeLoggedout: (
     passwordChangedAt: Date,
     jwtIssuedTimestamps: number
   ) => Promise<boolean>
