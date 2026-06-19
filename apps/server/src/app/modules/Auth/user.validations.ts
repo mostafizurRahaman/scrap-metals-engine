@@ -96,7 +96,7 @@ const updateUserStatusById = z.object({
 
 const logoutSchema = z.object({
   body: z.object({
-    token: requiredString('Token'),
+    fcmToken: requiredString('Token'),
   }),
 })
 

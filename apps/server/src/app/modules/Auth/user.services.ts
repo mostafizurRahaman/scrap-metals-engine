@@ -1,5 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AuthRoles, AuthStatus, Otp, otpTypes, User, type IUser, type TAuthStatus } from '@repo/db'
+import {
+  AuthRoles,
+  AuthStatus,
+  FcmToken,
+  Otp,
+  otpTypes,
+  User,
+  type IUser,
+  type TAuthStatus,
+} from '@repo/db'
 import type {
   IChangedPasswordType,
   IForgotPasswordType,
@@ -942,6 +951,16 @@ const refreshToken = async (refreshToken: string) => {
     throw new AppError(httpStatus.UNAUTHORIZED, 'Token has expired. Please log in again')
   }
 
+  /**
+   * 4.1. Token invalidation check
+   */
+  if (
+    user.passwordChangedAt &&
+    (await User.isJwtIssuedBeforeLoggedout(user.passwordChangedAt, decoded.iat as number))
+  ) {
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Token has expired. Please log in again')
+  }
+
   const jwtPayload: IJwtUserPayload = {
     _id: user._id?.toString(),
     email: user?.email,
@@ -961,12 +980,21 @@ const refreshToken = async (refreshToken: string) => {
 }
 
 const logOut = async (user: IUser, payload: ILogoutPayload) => {
-  const { token } = payload
+  const { fcmToken } = payload
 
-  // 
+  user.loggedOutAt = new Date()
+  await user.save()
 
+  // ?? Delete user fcm:
+  await FcmToken.findOneAndDelete({
+    user: user?._id,
+    token: fcmToken,
+  })
 
-
+  return {
+    userId: user?._id,
+    loggedOutAt: user.loggedOutAt,
+  }
 }
 
 export const AuthServices = {

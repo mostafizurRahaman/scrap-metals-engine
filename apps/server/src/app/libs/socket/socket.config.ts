@@ -139,6 +139,14 @@ const registerSocketHandler = (io: TServer) => {
         return next(new AppError(httpStatus.UNAUTHORIZED, 'Token has expired. Please log in again'))
       }
 
+      // 8.1. Check is token valid ? :
+      if (
+        user.passwordChangedAt &&
+        (await User.isJwtIssuedBeforeLoggedout(user.passwordChangedAt, decode?.iat as number))
+      ) {
+        return next(new AppError(httpStatus.UNAUTHORIZED, 'Token has expired. Please log in again'))
+      }
+
       // 4. set user into socket data:
       socket.data.user = user
 
