@@ -15,7 +15,6 @@ import {
   OrderChatStatus,
   SupportChat,
   User,
-  type IMessageDoc,
   type IOrderChatDoc,
 } from '@repo/db'
 import httpStatus from 'http-status'
@@ -39,7 +38,7 @@ export const socketConfigs = {
         origin: '*',
         methods: ['GET', 'POST'],
       },
-      // pingTimeout: 60000,
+      pingTimeout: 60000,
     }
 
     //  ? Setup the socket io server:
@@ -74,7 +73,7 @@ export const socketConfigs = {
       ioInstance.to(roomId).emit(event, payload)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      console.error(`🔴 Failed to emit event "${event}" to room "${roomId}":`, error.message)
+      logger.error(`🔴 Failed to emit event "${event}" to room "${roomId}":`, error.message)
     }
   },
 }
@@ -257,10 +256,13 @@ const registerSocketHandler = (io: TServer) => {
         })
       }
 
+      
       // ? Check is current user role:
       const isAdminUser = [AuthRoles.ADMIN, AuthRoles.SUPER_ADMIN].includes(
         user?.role as 'admin' | 'superadmin'
       )
+
+  
 
       // ? Check is the user member of this channel ?:
       const isMember = await ConversationUser.exists({
@@ -268,7 +270,10 @@ const registerSocketHandler = (io: TServer) => {
         conversation: conversation?._id,
       })
 
+     
+
       if (isAdminUser && !isMember) {
+      
         await ConversationUser.create({
           conversation: conversation._id,
           user: user?._id,
@@ -279,6 +284,7 @@ const registerSocketHandler = (io: TServer) => {
       }
 
       if (!isAdminUser && !isMember) {
+       
         return socket.emit('socket_error', {
           success: false,
           message: `You are not a member of this conversation!`,
@@ -477,7 +483,8 @@ const registerSocketHandler = (io: TServer) => {
         io.to(conversation?._id.toString()).emit('new_message', {
           success: true,
           message: 'New Message',
-          data: newMessage as IMessageDoc,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data: { ...newMessage?.toObject(), profileImage: user?.profileImage || null } as any,
         })
 
         io.to(conversation?._id?.toString()).emit('participant_status', {

@@ -18,6 +18,7 @@ import mongoose from 'mongoose'
 import configs from '@app/configs'
 import { AccountPasswordEmail, renderEmail } from 'packages/email-templates/src'
 import { sendEmail } from 'packages/email-sender/src'
+import { logger } from '@app/libs/logger'
 
 const createEmployee = async (payload: TCreateEmployeePayloadType) => {
   const { name, email, password, phoneNumber, address, role } = payload
@@ -115,10 +116,10 @@ const createEmployee = async (payload: TCreateEmployeePayloadType) => {
       createdAt: newUser?.createdAt,
       updatedAt: newUser?.updatedAt,
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
+    logger.error('Failed to create employee', error)
     await session.abortTransaction()
-    session.endSession()
-    console.log(error)
     throw new Error(error)
   }
 }

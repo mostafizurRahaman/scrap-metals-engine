@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import dotenv from 'dotenv'
 import path from 'path'
 import { z } from 'zod'
@@ -48,18 +49,18 @@ const envSchema = z.object({
   OTP_EXPIRES_IN: z.string().transform(Number).default(5),
   OTP_DIGITS: z.string().transform(Number).default(6),
 
-  // FIREBASE CONFIG: 
-  FIREBASE_PROJECT_ID: z.string("Firebase Project ID is required"),
-  FIREBASE_CLIENT_EMAIL: z.string("Firebase Client Email is required").email(),
-  FIREBASE_PRIVATE_KEY: z.string("Firebase Private Key is required"),
+  // FIREBASE CONFIG:
+  FIREBASE_PROJECT_ID: z.string('Firebase Project ID is required'),
+  FIREBASE_CLIENT_EMAIL: z.string('Firebase Client Email is required').email(),
+  FIREBASE_PRIVATE_KEY: z.string('Firebase Private Key is required'),
 })
 
 // 3. Validate process.env
 const parsedEnv = envSchema.safeParse(process.env)
 
 if (!parsedEnv.success) {
-  console.error('❌ Invalid Environment Variables:')
-  console.error(JSON.stringify(parsedEnv.error.format(), null, 2))
+  console.warn('❌ Invalid Environment Variables:')
+  console.warn(JSON.stringify(parsedEnv.error.format(), null, 2))
   process.exit(1) // Stop the app immediately if variables are wrong
 }
 

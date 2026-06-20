@@ -20,6 +20,7 @@ import type {
 } from './conversation.validations'
 import mongoose, { Types } from 'mongoose'
 import { uploadSingleFileToS3 } from 'packages/media-hub/src'
+import { logger } from '@app/libs/logger'
 
 const uploadFile = async (file: Express.Multer.File) => {
   if (!file) {
@@ -76,7 +77,7 @@ const createOrGetSupport = async (user: IUser) => {
     await session.commitTransaction()
     return supportChat
   } catch (error) {
-    console.log(error)
+    logger.error('Failed to create support', error)
     await session.abortTransaction()
     throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, 'Internal server error!')
   } finally {

@@ -1,4 +1,3 @@
-import { Body } from '@react-email/components'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   AssignedEmployee,
