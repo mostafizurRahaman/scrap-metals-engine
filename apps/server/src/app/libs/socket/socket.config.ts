@@ -165,6 +165,7 @@ const registerSocketHandler = (io: TServer) => {
 
     //  ? Join into channel:
     socket.on('join', async ({ conversationId }) => {
+      logger.debug('Debug JOIN', `conversation ${conversationId} user : ${user.name}`)
       // ? Check is conversation is a valid id?:
       if (!mongoose.isValidObjectId(conversationId)) {
         return socket.emit('socket_error', {
@@ -232,7 +233,7 @@ const registerSocketHandler = (io: TServer) => {
         data: allParticipants,
       })
 
-      logger.info(`${user?.name} is joined into conversation channel.`)
+      logger.info(`DEBUG JOIN: ${user?.name} is joined into conversation channel.`)
     })
 
     //  ? Join (Support) into channel:
@@ -320,7 +321,7 @@ const registerSocketHandler = (io: TServer) => {
         data: allParticipants,
       })
 
-      logger.info(`${user?.name} is joined into conversation channel.`)
+      logger.debug(` Debug SUpport JOIN conversation ${conversationId} user : ${user.name} `)
     })
 
     // ? Send Message:
@@ -485,12 +486,16 @@ const registerSocketHandler = (io: TServer) => {
           data: allParticipants,
         })
 
+        logger.debug(
+          ` DEBUG JOIN  < : conversation ${conversationId} user : ${user.name} newMessage: ${newMessage}`
+        )
+
         try {
           await notificationServices.createNotificationForMultipleUser(
             {
               sender: user?._id,
               title: 'New Message',
-              message: '',
+              message: `${user.name} sends you a message.`,
               notificationType: notificationType.NEW_MESSAGE,
               meta: {
                 conversationId: conversation?._id,
