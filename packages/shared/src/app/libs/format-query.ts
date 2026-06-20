@@ -16,18 +16,6 @@ export const formatQuery = (query: BaseQueryParams) => {
   if (fromDate) dateFilter.$gte = new Date(fromDate)
   if (toDate) dateFilter.$lte = new Date(toDate)
 
-  console.log({
-    page: Number(page),
-    limit: Number(limit),
-    skip: (Number(page) - 1) * Number(limit),
-    searchTerm,
-    sortOrder,
-    sortBy,
-    fromDate,
-    toDate,
-    dateFilter,
-  })
-
   return {
     page: Number(page),
     limit: Number(limit),
