@@ -9,6 +9,8 @@ import { notFound } from './app/middlewares/not-found'
 import globalErrorHandler from './app/middlewares/global-error-handler'
 import { allRoutes } from '@app/routes'
 import { logger } from '@app/libs/logger'
+import os from 'node:os'
+import { exec } from 'child_process'
 
 const app: express.Application = express()
 
@@ -43,6 +45,32 @@ app.use(limiter)
 app.get('/', (req: Request, res: Response) => {
   res.json({
     message: `Your server is running now`,
+  })
+})
+
+app.get('/health', (req: Request, res: Response) => {
+  const totalRam = os.totalmem()
+  const freeRam = os.freemem()
+  const usedRam = totalRam - freeRam
+
+  exec('df -h / | tail -1', (err, stdout) => {
+    if (err) {
+      return res.status(500).json({ error: err.message })
+    }
+
+    const disk = stdout.trim().split(/\s+/)
+
+    res.json({
+      ram: {
+        used: (usedRam / 1024 / 1024 / 1024).toFixed(2) + ' GB',
+        total: (totalRam / 1024 / 1024 / 1024).toFixed(2) + ' GB',
+      },
+      disk: {
+        used: disk[2],
+        total: disk[1],
+        percent: disk[4],
+      },
+    })
   })
 })
 
