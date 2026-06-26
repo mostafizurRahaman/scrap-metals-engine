@@ -138,15 +138,15 @@ const signUp = async (payload: ISignUpSchemaType, file: Express.Multer.File) => 
       })
     )
 
+    await session.commitTransaction()
+    session.endSession()
+
     // 7. Send OTP with rendered template
-    await sendEmail({
+    sendEmail({
       to: newUser.email,
       html: htmlTemplate.html,
       subject: 'Your OTP for Account Verification',
     })
-
-    await session.commitTransaction()
-    session.endSession()
 
     return {
       name: newUser.name,
@@ -211,7 +211,7 @@ const resendSignupOTP = async (payload: IResendSignupType) => {
     )
 
     //  Send OTP with rendered template
-    await sendEmail({
+    sendEmail({
       to: user.email,
       html: htmlTemplate.html,
       subject: 'Your OTP for Account Verification',
@@ -254,7 +254,7 @@ const resendSignupOTP = async (payload: IResendSignupType) => {
   )
 
   // 7. Send OTP with rendered template
-  await sendEmail({
+  sendEmail({
     to: user.email,
     html: htmlTemplate.html,
     subject: 'Your OTP for Account Verification',
@@ -434,7 +434,7 @@ const forgotPassword = async (payload: IForgotPasswordType) => {
     )
 
     // 7. Send OTP with rendered template
-    await sendEmail({
+     sendEmail({
       to: user.email,
       html: htmlTemplate.html,
       subject: 'OTP for reset password!',
@@ -538,7 +538,7 @@ const resendOTP = async (payload: IResendSignupType) => {
     )
 
     //  Send OTP with rendered template
-    await sendEmail({
+     sendEmail({
       to: user.email,
       html: htmlTemplate.html,
       subject: 'OTP for reset password!',
@@ -581,7 +581,7 @@ const resendOTP = async (payload: IResendSignupType) => {
   )
 
   // 7. Send OTP with rendered template
-  await sendEmail({
+   sendEmail({
     to: user.email,
     html: htmlTemplate.html,
     subject: 'OTP for reset password!',

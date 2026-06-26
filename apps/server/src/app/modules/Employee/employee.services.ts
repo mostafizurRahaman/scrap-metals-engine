@@ -94,15 +94,15 @@ const createEmployee = async (payload: TCreateEmployeePayloadType) => {
       })
     )
 
-    // // 7. Send OTP with rendered template
-    await sendEmail({
+    await session.commitTransaction()
+    session.endSession()
+
+    // 7. Send OTP with rendered template
+    sendEmail({
       to: newUser.email,
       html: htmlTemplate.html,
       subject: 'Login Details for Your New Account',
     })
-
-    await session.commitTransaction()
-    session.endSession()
 
     return {
       name: newUser.name,
