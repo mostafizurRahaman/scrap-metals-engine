@@ -24,6 +24,11 @@ const sendPushNotification = async (notification: INotification) => {
     data: meta as Record<string, string>,
   })
 
+  console.log({
+    receiverFcmTokens,
+    notificationResponse,
+  })
+
   // ?? Clean up token which are not valid :
   await removeInvalidTokens(notificationResponse, receiverFcmTokens)
 }
